@@ -40,8 +40,14 @@ Build on Eeshita's architectural identity and the team's conceptual feedback. Pr
 - [x] Implement page, visual system and interactions
 - [x] Ground product claims and media in official sources
 - [x] Validate and fix failures
-- [ ] Publish private review version
+- [x] Publish private review version
 
 ## Writing refinement
 
 User direction: clear institutional writing, restrained animation and a direct conversion path. Final hero: “Privacy for Hyperliquid traders.” Avoid vague brand slogans; state public visibility, order delay and withdrawal dependencies plainly.
+
+## Review links
+
+- Private site: https://shieldtx-concept-v2.tanisha97.chatgpt.site
+- Fork: https://github.com/Tanisha-Katara/shieldtx-v2/tree/concept-v2
+- Live browser usability/animation QA remains outstanding; automated interaction tests, asset validation and responsive source review passed.
