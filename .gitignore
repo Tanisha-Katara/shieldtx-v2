@@ -1,4 +1,8 @@
 .DS_Store
-.openai/
+.openai/*
+!.openai/hosting.json
 .sites-runtime/
 retired-assets/
+dist/client/
+dist/server/
+dist/.openai/

@@ -1,48 +1,43 @@
-# ShieldTX — Your edge. Protected.
+# ShieldTX — concept v2
 
-Static, responsive website based on the approved blue geometry direction.
+An independent iteration of [Eeshita's ShieldTX concept](https://github.com/eeshitaaa/shieldtx), retaining its architectural drawing style, serif typography and cobalt identity.
 
-## Run locally
+The [plan](PLAN.md) was written before implementation. This version prioritises clear product language, terminal access, a visible wallet scanner, and an inspectable four-step walkthrough. Trading activity remains public; the funding-wallet association is what the site explains as shielded.
+
+## Run
 
 ```sh
-python3 -m http.server 4193 --bind 127.0.0.1 --directory dist
+npm run dev
 ```
 
-Open http://localhost:4193/. No build step or package installation is required.
+Open `http://127.0.0.1:4193`. No installation or build is needed for local development. The original static source structure remains in `dist/`.
 
-## Implementation
+```sh
+npm test
+npm run build
+```
 
-- `dist/model.js`: genuine Three.js institution with four distinct fluted pillars, an extruded pediment, capitals, an entablature and four stepped treads. No raster images or image textures. Includes a lit sphere, procedural glow and geometric drafting rings; white architectural linework uses depth-only surfaces to occlude hidden edges.
-- `dist/app.js`: reversible GSAP scroll transitions, trade flow, mobile navigation, wallet scanner handoff and reduced-motion controls.
-- `dist/style.css`: cobalt blue, serif display type, geometric grid, generous side and section spacing, responsive layouts.
-- `dist/index.html`: product narrative, official ShieldTX logo, API CTA, ten FAQ topics and separate footer.
+The dependency-free build validates local assets and produces `dist/client/` plus a Cloudflare-compatible `dist/server/index.js`. These generated directories are ignored by Git. Sites metadata is in `.openai/hosting.json`.
 
-Desktop: the institution stays attached to its original position in the hero and fades while a separate orb layer descends; eight labelled incoming threats cycle only after the orb arrives. On mobile, the institution also stays in the hero, while the orb transitions between dedicated visual areas clear of the copy. The problem section retains its own faint orbit lines. Trade steps are also clickable. Scrolling and content stay accessible with motion disabled.
+## Experience
 
-## Product integration boundary
-
-Request-access buttons link to ShieldTX's official contact page. The wallet exposure dialog validates a public wallet address and opens ShieldTX's official scanner. It does not create accounts, submit trades, connect a wallet or fabricate exposure results.
+- **Terminal and API:** separate routes to the official beta terminal and API access page, plus a beta application link.
+- **Wallet association:** an illustrative before/after comparison. It never invents exposure scores or processes wallet data.
+- **Walkthrough:** four selectable stages, one optional playback sequence on larger screens, pause/replay, and visibility-aware scheduling. Page scrolling is never captured. Reduced motion keeps manual selection available.
+- **Architecture:** a dimensional institution and geometric trade object, with a canvas fallback if WebGL is unavailable. Motion is limited to a short entrance and subtle pointer response.
+- **Scanner:** validates a public EVM address locally, then opens the official scanner in a new tab. No wallet connection, signature, or transaction occurs here.
+- **Product:** a clean frame from the existing official demo, with provenance and product boundaries in [product sources](docs/product-sources.md). It is not presented as a live screenshot.
 
 ## Verification
 
-Browser checked at 1440px desktop, 820px tablet and 390px mobile: real WebGL canvases, hero/problem transition, trade-flow controls, responsive bounds, mobile navigation, scanner dialog, FAQ expansion and reduced motion. Ten FAQ topics are included. JavaScript syntax validated with Node.
+- Seven automated interaction tests cover one-shot playback, stale timer prevention, pause/resume, visibility, reduced motion, replay, and scanner addresses.
+- Build verifies local asset/import references.
+- HTML checks cover duplicate IDs, anchor/ARIA targets, image labels, and external-link attributes.
+- JavaScript syntax checks pass. The architecture model's projection bounds were checked at desktop, mobile, and small diagram sizes.
+- Responsive CSS has been reviewed at its defined breakpoints. This iteration has not received a live browser usability/animation review.
 
-## Hosting
+## Assets and scope
 
-The source site is in `dist/` on `main`. The `gh-pages` branch contains those
-same files at its root for GitHub Pages publishing.
+Original logo, typeface and Three.js assets are retained. The social card was created with built-in ImageGen; exact prompts and provenance are in [social-card.md](docs/social-card.md). This is a concept site, with product actions pointing to official ShieldTX services.
 
-Repository **Settings → Pages** should use **Deploy from a branch**, with
-branch **gh-pages** and folder **/ (root)**. No build step or secrets are needed;
-fonts and browser libraries are included locally.
-
-Site address after deployment: https://eeshitaaa.github.io/shieldtx/
-
-After updating and committing the source, publish with:
-
-```sh
-git push origin main
-git subtree push --prefix dist origin gh-pages
-```
-
-To use another static host, upload the contents of `dist/` as its web root.
+Product information was checked against official sources on 24 September 2026. Universal-token funding and production-wide availability are not claimed.
