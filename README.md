@@ -22,19 +22,20 @@ The dependency-free build validates local assets and produces `dist/client/` plu
 ## Experience
 
 - **Terminal and API:** separate routes to the official beta terminal and API access page, plus a beta application link.
-- **Wallet association:** an illustrative before/after comparison. It never invents exposure scores or processes wallet data.
-- **Walkthrough:** four selectable stages, one optional playback sequence on larger screens, pause/replay, and visibility-aware scheduling. Page scrolling is never captured. Reduced motion keeps manual selection available.
-- **Architecture:** a dimensional institution and geometric trade object, with a canvas fallback if WebGL is unavailable. Motion is limited to a short entrance and subtle pointer response.
+- **Wallet association:** two visible comparison rows show what stays public and which association is shielded. No tab switching, invented exposure scores or wallet processing.
+- **Walkthrough:** native scrolling advances four selectable stages. A short sticky sequence is used only when the board fits the viewport. Step selection and Replay navigate to the matching stage; reduced motion keeps manual selection available. Wheel and touch scrolling are never captured.
+- **Architecture:** a dimensional institution releases a geometric trade object into the public-association comparison. The building and cube respond to scroll progress. A canvas fallback works without WebGL.
+- **Credibility:** official Avail branding and a linked “Built by Avail” credit appear above the hero headline and beside product access.
 - **Scanner:** validates a public EVM address locally, then opens the official scanner in a new tab. No wallet connection, signature, or transaction occurs here.
 - **Product:** a clean frame from the existing official demo, with provenance and product boundaries in [product sources](docs/product-sources.md). It is not presented as a live screenshot.
 
 ## Verification
 
-- Seven automated interaction tests cover one-shot playback, stale timer prevention, pause/resume, visibility, reduced motion, replay, and scanner addresses.
+- Two focused automated tests cover valid and invalid scanner addresses.
 - Build verifies local asset/import references.
 - HTML checks cover duplicate IDs, anchor/ARIA targets, image labels, and external-link attributes.
 - JavaScript syntax checks pass. The architecture model's projection bounds were checked at desktop, mobile, and small diagram sizes.
-- Responsive CSS has been reviewed at its defined breakpoints. This iteration has not received a live browser usability/animation review.
+- Local browser checks cover desktop and mobile layouts, scroll progression, step selection, Replay, motion controls, reduced motion, mobile navigation and scanner validation. Browser screenshots are reviewed for layout and legibility.
 
 ## Assets and scope
 

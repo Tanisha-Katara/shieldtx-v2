@@ -3,7 +3,8 @@
   const T = window.THREE, views = [];
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const pointer = matchMedia('(hover: hover) and (pointer: fine)');
-  let enabled = true, frame = 0;
+  let enabled = true, frame = 0, progress = 0;
+  const clamp = value => Math.max(0, Math.min(1, value));
   const motion = () => enabled && !reduced.matches && !document.documentElement.classList.contains('motion-off');
 
   function institution(ink) {
@@ -52,6 +53,8 @@
     solid(new T.ExtrudeGeometry(roof,{depth:4.25,bevelEnabled:false}),0,4.39,-2.125);
     line([[-2.91,4.51,2.135],[0,5.39,2.135],[2.91,4.51,2.135],[-2.91,4.51,2.135]],edge);
     line([[-2.57,4.61,2.14],[0,5.24,2.14],[2.57,4.61,2.14]]);
+    root.userData.inkMaterials = [edge, detail];
+    root.userData.inkOpacities = [.94, .42];
     return root;
   }
 
@@ -60,7 +63,7 @@
     root.name = 'Trade';
     const colors = inkTone ? [0x1260dc,0x0b3e8f,0x5c86ed,0x0b3e8f,0x004fef,0x1260dc] :
       [0xc9e4ce,0xa8c5af,0xf0f6e8,0xb5d2bc,0xe0eedb,0xc9e4ce];
-    const cube = new T.Mesh(geometry,colors.map(color => new T.MeshBasicMaterial({color})));
+    const cube = new T.Mesh(geometry,colors.map(color => new T.MeshBasicMaterial({color,transparent:true})));
     cube.add(new T.LineSegments(new T.EdgesGeometry(geometry),new T.LineBasicMaterial({
       color:inkTone?0x002e86:0xffffff,transparent:true,opacity:.82})));
     root.add(cube); root.rotation.set(.12,-.30,.05); root.position.set(.10,2.27,2.47);
@@ -123,6 +126,23 @@
   }
 
   function render(view) {
+    if(view.hero){
+      const phase=motion()?progress:0;
+      const fade=1-clamp(phase/.83);
+      view.building.userData.inkMaterials.forEach((material,i)=>{
+        material.opacity=view.building.userData.inkOpacities[i]*fade;
+      });
+      view.building.visible=fade>.001;
+      view.group.position.y=-phase*.3;
+      view.group.rotation.y=(view.entrance||0)+phase*.11;
+      view.trade.visible=phase<.12;
+      view.trade.traverse(object=>{
+        if(!object.material)return;
+        const materials=Array.isArray(object.material)?object.material:[object.material];
+        materials.forEach(material=>{material.opacity=1-clamp(phase/.12);});
+      });
+      view.host.dataset.journey=phase<.08?'inside':phase<.9?'departing':'exposed';
+    }
     if(view.visible && !document.hidden && !view.lost) view.renderer.render(view.scene,view.camera);
   }
   function requestFrame() {
@@ -136,7 +156,7 @@
       const x=allowed?v.pointer.x:0,y=allowed?v.pointer.y:0;
       v.building.rotation.y+=(x-v.building.rotation.y)*.13;
       v.building.rotation.x+=(y-v.building.rotation.x)*.13;
-      v.group.rotation.y=allowed?Math.pow(1-elapsed,3)*.055:0;
+      v.entrance=allowed?Math.pow(1-elapsed,3)*.055:0;
       render(v);
       if(allowed && (elapsed<1 || Math.abs(x-v.building.rotation.y)>.0001 ||
         Math.abs(y-v.building.rotation.x)>.0001))unsettled=true;
@@ -158,9 +178,10 @@
     camera.position.set(10,8.6,20);camera.lookAt(0,2.55,0);
     const ink=host.dataset.tone==='ink',building=institution(ink?0x064295:0xf4f5e9);
     const group=new T.Group();group.add(building);
-    if(hero)building.add(trade(ink));
+    const tradeObject=hero?trade(ink):null;
+    if(tradeObject)group.add(tradeObject);
     scene.add(group);
-    const view={host,renderer,scene,camera,building,group,visible:true,
+    const view={host,renderer,scene,camera,building,group,hero,trade:tradeObject,visible:true,
       entered:motion()&&hero?performance.now():0,pointer:{x:0,y:0},lost:false};
     views.push(view);host.dataset.model='webgl';
     function resize(){
@@ -193,14 +214,29 @@
   }
   function refresh(){
     if(!motion())views.forEach(v=>{
-      v.pointer.x=v.pointer.y=0;v.building.rotation.set(0,0,0);v.group.rotation.set(0,0,0);
+      v.pointer.x=v.pointer.y=0;v.building.rotation.set(0,0,0);v.group.rotation.set(0,0,0);v.entrance=0;
     });
     requestFrame();
   }
   makeView(document.getElementById('hero-model'),true);
   makeView(document.getElementById('flow-model'),false);
   window.shieldScene={
-    setProgress(){/* The institution intentionally remains independent of scroll. */},
+    setProgress(value){
+      progress=clamp(Number(value)||0);
+      views.filter(view=>view.hero).forEach(render);
+      const fallbackHost=document.querySelector('#hero-model[data-model="canvas"]');
+      if(fallbackHost)fallbackHost.style.opacity=motion()?String(1-clamp(progress/.83)):'1';
+    },
+    getTradeAnchor(){
+      const view=views.find(item=>item.hero&&!item.lost);
+      const host=document.getElementById('hero-model');
+      if(!host)return null;
+      const rect=host.getBoundingClientRect();
+      if(!view)return {x:rect.left+rect.width*.47,y:rect.top+rect.height*.59,size:22};
+      const point=new T.Vector3(.10,2.27,2.47).project(view.camera);
+      return {x:rect.left+(point.x*.5+.5)*rect.width,y:rect.top+(-point.y*.5+.5)*rect.height,
+        size:Math.max(15,rect.width*.57/(view.camera.right-view.camera.left))};
+    },
     refresh,setMotion(value){enabled=value!==false;refresh();}
   };
   new MutationObserver(refresh).observe(document.documentElement,{attributes:true,attributeFilter:['class']});

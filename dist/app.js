@@ -1,46 +1,58 @@
-import {createWalkthrough,normaliseWallet} from './flow-controller.mjs';
+import {normaliseWallet} from './wallet-address.mjs';
 
 const $=selector=>document.querySelector(selector);
 const $$=selector=>Array.from(document.querySelectorAll(selector));
 const preference=window.matchMedia('(prefers-reduced-motion: reduce)');
 let motionChoice=null;
-const motionDisabled=()=>motionChoice??preference.matches;
+const motionDisabled=()=>preference.matches||motionChoice===true;
 const steps=[
   {title:'Fund your ShieldTX balance.',copy:'Fund your balance with USDC. This is the starting point for your shielded trading activity.'},
   {title:'Shield the funding-wallet association.',copy:'ShieldTX separates your funding wallet from the account that will execute your trade. Onchain activity remains public.'},
   {title:'Create a fresh trading account.',copy:'A fresh account is created for the trade. Public position data appears against that account.'},
   {title:'Execute on Hyperliquid.',copy:'The account submits your order to Hyperliquid. After the position closes, proceeds return to your ShieldTX balance.'},
 ];
-let userInteraction=false,wasInView=false,lastRenderedStep=0;
-const flow=createWalkthrough({reduced:motionDisabled(),onChange:state=>{
-  $('.flow-board').dataset.step=String(state.step);
+let selectedStep=0,lastRenderedStep=0,manualInspection=null,detailAnimation=null;
+function selectStep(step){
+  if(!Number.isInteger(step)||step<0||step>=steps.length)return;
+  selectedStep=step;
+  $('.flow-board').dataset.step=String(step);
   $$('.flow-node').forEach((node,index)=>{
-    const active=index===state.step;
+    const active=index===step;
     node.classList.toggle('is-active',active);
     node.setAttribute('aria-pressed',String(active));
   });
-  $('#detail-count').textContent=String(state.step+1).padStart(2,'0');
-  $('#detail-title').textContent=steps[state.step].title;
-  $('#detail-copy').textContent=steps[state.step].copy;
-  if(state.step!==lastRenderedStep&&!motionDisabled()){
-    $('.flow-detail>div:nth-child(2)').animate([{opacity:.35,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:260,easing:'ease-out'});
+  $('#detail-count').textContent=String(step+1).padStart(2,'0');
+  $('#detail-title').textContent=steps[step].title;
+  $('#detail-copy').textContent=steps[step].copy;
+  if(step!==lastRenderedStep&&!motionDisabled()){
+    detailAnimation?.cancel();
+    detailAnimation=$('.flow-detail>div:nth-child(2)').animate([{opacity:.35,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:260,easing:'ease-out'});
   }
-  lastRenderedStep=state.step;
-  $('#play-symbol').textContent=state.playing?'Ⅱ':'▶';
-  $('#play-label').textContent=state.playing?'Pause':'Play';
-  $('#flow-play').setAttribute('aria-label',state.playing?'Pause trade walkthrough':'Play trade walkthrough');
-  $('#flow-play').disabled=state.reduced;
-  $('#flow-replay').disabled=state.reduced;
-  $('#flow-status').textContent=state.reduced?'Select a step':state.completed?'Complete':state.playing?`Step ${state.step+1} of 4`:userInteraction?'Paused · Select any step':'Ready to explore';
-}});
+  lastRenderedStep=step;
+  $('#flow-status').textContent=motionDisabled()?'Select a step':`Step ${step+1} of 4 · Scroll to follow`;
+}
+
+document.addEventListener('shield-flow-step',event=>{
+  if(motionDisabled())return;
+  const step=event.detail?.step;
+  if(manualInspection!==null){
+    if(step!==manualInspection)return;
+    manualInspection=null;
+  }
+  selectStep(step);
+});
 
 function updateMotion(){
   const disabled=motionDisabled();
   document.documentElement.classList.toggle('motion-off',disabled);
   $('#motion-toggle').setAttribute('aria-pressed',String(disabled));
   $('#motion-toggle').innerHTML=`Motion ${disabled?'off':'on'} <span aria-hidden="true">◎</span>`;
+  $('#motion-toggle').disabled=preference.matches;
+  manualInspection=null;
+  if(disabled)detailAnimation?.cancel();
   window.shieldScene?.setMotion(!disabled);
-  flow.setReduced(disabled);
+  selectStep(selectedStep);
+  document.dispatchEvent(new CustomEvent('shield-motion-change',{detail:{enabled:!disabled}}));
 }
 $('#motion-toggle').addEventListener('click',()=>{motionChoice=!motionDisabled();updateMotion();});
 preference.addEventListener('change',updateMotion);
@@ -48,32 +60,29 @@ document.addEventListener('shield-model-ready',updateMotion);
 updateMotion();
 
 $$('.flow-node').forEach(node=>node.addEventListener('click',()=>{
-  userInteraction=true;flow.select(Number(node.dataset.step));
+  const step=Number(node.dataset.step);
+  selectStep(step);
+  manualInspection=!motionDisabled()&&window.shieldMotion?.navigateToStep(step)?step:null;
 }));
-$('#flow-play').addEventListener('click',()=>{
-  userInteraction=true;
-  if(flow.getState().playing)flow.pause();else flow.play();
+$('#flow-replay').addEventListener('click',()=>{
+  selectStep(0);
+  manualInspection=!motionDisabled()&&window.shieldMotion?.navigateToStep(0)?0:null;
 });
-$('#flow-replay').addEventListener('click',()=>{userInteraction=true;flow.replay();});
-// A section entering the viewport starts one optional sequence on larger screens.
-// Scrolling is never captured or translated into playback progress.
-const flowObserver=new IntersectionObserver(entries=>{
-  wasInView=entries[0].isIntersecting;
-  flow.setVisible(wasInView&&!document.hidden);
-  if(wasInView&&!userInteraction&&window.matchMedia('(min-width: 900px)').matches)flow.autoStart();
-},{threshold:.38});
-flowObserver.observe($('.flow-board'));
-document.addEventListener('visibilitychange',()=>flow.setVisible(wasInView&&!document.hidden));
-window.addEventListener('pagehide',()=>flow.pause());
+// Native scrolling is the only playback clock. Manual navigation temporarily
+// holds the chosen explanation while the page scrolls to the matching stage.
+function releaseInspection(){
+  if(manualInspection===null)return;
+  manualInspection=null;
+  const state=window.shieldMotion?.getState();
+  if(state?.enabled&&!motionDisabled())selectStep(Math.min(3,Math.floor(state.flow*4)));
+}
+window.addEventListener('scrollend',releaseInspection);
+window.addEventListener('wheel',releaseInspection,{passive:true});
+window.addEventListener('touchstart',releaseInspection,{passive:true});
+window.addEventListener('keydown',event=>{
+  if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key))releaseInspection();
+});
 
-$$('[data-comparison]').forEach(button=>button.addEventListener('click',()=>{
-  const shielded=button.dataset.comparison==='shielded';
-  $('.comparison').dataset.shielded=String(shielded);
-  $$('[data-comparison]').forEach(item=>{const active=item===button;item.classList.toggle('is-active',active);item.setAttribute('aria-pressed',String(active));});
-  $('#bridge-label').textContent=shielded?'Association shielded':'Public association';
-  $('#example-account').textContent=shielded?'Fresh trading account':'Your trading account';
-  $('#comparison-description').textContent=shielded?'Position data stays visible. ShieldTX shields the public link to your funding wallet.':'An observer can associate trading activity with your wallet.';
-}));
 
 function closeMenu(){
   $('#main-nav').classList.remove('is-open');

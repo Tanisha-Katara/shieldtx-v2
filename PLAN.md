@@ -50,4 +50,14 @@ User direction: clear institutional writing, restrained animation and a direct c
 
 - Private site: https://shieldtx-concept-v2.tanisha97.chatgpt.site
 - Fork: https://github.com/Tanisha-Katara/shieldtx-v2/tree/concept-v2
-- Live browser usability/animation QA remains outstanding; automated interaction tests, asset validation and responsive source review passed.
+- The first review version received automated checks and responsive source review. Browser verification is included in the revision below.
+
+## Revision after visual review
+
+- Use Avail’s direct storytelling and visual pacing as a reference while retaining ShieldTX’s architectural identity.
+- Put “Built by Avail” above the hero headline and beside the terminal/API section.
+- Show the public-association comparison as two open rows, with a visible break in the shielded link.
+- Replace the oversized product heading and stacked side panel with two aligned access routes and a tighter terminal preview.
+- Remove small explanatory footnotes and decorative captions; increase the legibility of useful trust information.
+- Restore the scroll-led trade journey from the institution into the comparison and through the four execution stages. Preserve native scrolling, manual controls and reduced motion.
+- Check the revised layouts and interactions in a local browser, then update the existing private review URL.
