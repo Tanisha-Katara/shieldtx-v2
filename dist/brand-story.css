@@ -1,0 +1,126 @@
+/* Official mark details remain visible when the travelling canvas is absent. */
+.api-route-path li:nth-child(2) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.api-mark-slot {
+  display: block;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 34px;
+}
+
+.api-mark-slot img,
+.closing-mark-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.api-mark-slot img {
+  opacity: var(--api-mark-opacity, 1);
+}
+
+.api-mark-label {
+  min-width: 0;
+}
+
+.closing-brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .18em;
+  white-space: nowrap;
+}
+
+.closing-mark-slot {
+  display: inline-block;
+  flex: 0 0 .64em;
+  width: .64em;
+  height: .8em;
+  align-self: center;
+}
+
+.closing-mark-slot img {
+  opacity: var(--closing-mark-opacity, 1);
+}
+
+.motion-off .api-mark-slot img,
+.motion-off .closing-mark-slot img {
+  opacity: 1;
+}
+
+.qa summary > .faq-toggle,
+.qa details[open] summary > .faq-toggle {
+  position: relative;
+  display: block;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 22px;
+  transform: none;
+  transition: none;
+}
+
+.faq-toggle-plus,
+.faq-toggle-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.faq-toggle-plus {
+  opacity: 1;
+  transform: scale(1);
+  font: 300 21px/1 var(--sans);
+}
+
+.faq-toggle-mark {
+  inset: 2px 1.5px;
+  width: 15px;
+  height: 18px;
+  background: var(--blue);
+  -webkit-mask: url('assets/shieldtx-mark.svg') center / contain no-repeat;
+  mask: url('assets/shieldtx-mark.svg') center / contain no-repeat;
+  opacity: 0;
+  transform: scale(.9);
+}
+
+.qa details[open] .faq-toggle-plus {
+  opacity: 0;
+  transform: scale(.9);
+}
+
+.qa details[open] .faq-toggle-mark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (max-width: 900px) {
+  .api-route-path li:nth-child(2) {
+    flex: 1.6;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 680px) {
+  .closing h2 {
+    font-size: clamp(35px, 9.5vw, 51px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-mark-slot img,
+  .closing-mark-slot img {
+    opacity: 1;
+  }
+
+  .faq-toggle-plus,
+  .faq-toggle-mark {
+    transition: none;
+  }
+}

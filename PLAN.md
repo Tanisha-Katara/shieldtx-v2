@@ -81,3 +81,12 @@ User direction: clear institutional writing, restrained animation and a direct c
 - Explain shielded deposits, a fresh unlinked wallet for each position, terminal trading and reshielded withdrawals to a chosen wallet. State the absence of hidden trading and withdrawal charges using the user's product clarification.
 - Remove the return-path annotation and position identifier from the board; give the travelling symbol a clear lane above the explanation.
 - Keep the travelling mark compact and free of wordmark text so it does not obscure the step labels.
+
+## Roof-to-footer brand story
+
+- Anchor the first bar to a projected roof edge, then let scrolling detach it from the institution.
+- Split into two bars at the right edge and rotate them into the actual association break. Hold them in the diagram briefly before departing.
+- Add the third bar and tapered base at the next edge contact; preserve the four-step walkthrough's route.
+- Fit the completed mark inside a reserved API slot and hold its position relative to the box as the page scrolls.
+- Replace each open FAQ's plus with the small official mark, without a border.
+- Finish inside the closing headline rather than leaving a floating mark beside the footer. Preserve static equivalents for reduced motion.

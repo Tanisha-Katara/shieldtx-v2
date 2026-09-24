@@ -158,7 +158,7 @@
     if(!frame && !document.hidden)frame=requestAnimationFrame(animate);
   }
   function animate(time) {
-    frame=0;let unsettled=false;
+    frame=0;let unsettled=false,roofChanged=false;
     views.forEach(v=>{
       if(!v.visible || v.lost)return;
       const allowed=motion(),elapsed=v.entered?Math.min(1,(time-v.entered)/1100):1;
@@ -167,9 +167,13 @@
       v.building.rotation.x+=(y-v.building.rotation.x)*.13;
       v.entrance=allowed?Math.pow(1-elapsed,3)*.055:0;
       render(v);
+      if(v.hero&&tradeOverlay)roofChanged=true;
       if(allowed && (elapsed<1 || Math.abs(x-v.building.rotation.y)>.0001 ||
         Math.abs(y-v.building.rotation.x)>.0001))unsettled=true;
     });
+    // Scroll paints also call render(); only the independent model animation
+    // clock announces changes, avoiding a paint -> render -> paint loop.
+    if(roofChanged)document.dispatchEvent(new Event('shield-roof-change'));
     if(unsettled)requestFrame();
   }
 
@@ -244,6 +248,43 @@
       views.filter(view=>view.hero).forEach(render);
       const fallbackHost=document.querySelector('#hero-model[data-model="canvas"]');
       if(fallbackHost)fallbackHost.style.opacity=motion()?String(1-clamp(progress/.83)):'1';
+    },
+    getRoofAnchor({rest=false}={}){
+      const host=document.getElementById('hero-model');
+      if(!host)return null;
+      const rect=host.getBoundingClientRect();
+      if(!rect.width||!rect.height)return null;
+      const view=views.find(item=>item.hero&&!item.lost);
+      // This segment is part of the front roof prism's actual lower edge.
+      const edge=[[.65,4.39,2.125],[1.45,4.39,2.125]];
+      let points;
+      if(view){
+        view.scene.updateMatrixWorld(true);
+        view.camera.updateMatrixWorld(true);
+        let buildingWorld=view.building.matrixWorld;
+        if(rest){
+          const position=view.group.position.clone();position.y=0;
+          const rotation=view.group.rotation.clone();rotation.y=view.entrance||0;
+          const groupMatrix=new T.Matrix4().compose(position,
+            new T.Quaternion().setFromEuler(rotation),view.group.scale);
+          buildingWorld=new T.Matrix4().multiplyMatrices(view.group.parent.matrixWorld,groupMatrix)
+            .multiply(view.building.matrix);
+        }
+        points=edge.map(position=>{
+          const point=new T.Vector3(...position).applyMatrix4(buildingWorld).project(view.camera);
+          return {x:rect.left+(point.x*.5+.5)*rect.width,
+            y:rect.top+(-point.y*.5+.5)*rect.height};
+        });
+      }else{
+        const scale=Math.min(rect.width/10.4,rect.height/8.3);
+        points=edge.map(([x,y,z])=>({
+          x:rect.left+rect.width/2+(x*.9-z*.44)*scale,
+          y:rect.top+rect.height/2+2.3*scale-(y*.96-x*.14-z*.29)*scale
+        }));
+      }
+      const [a,b]=points,dx=b.x-a.x,dy=b.y-a.y;
+      return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,
+        size:Math.hypot(dx,dy)/.91,angle:Math.atan2(dy,dx)};
     },
     getTradeAnchor(){
       const view=views.find(item=>item.hero&&!item.lost);

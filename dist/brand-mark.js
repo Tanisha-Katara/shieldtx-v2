@@ -7,36 +7,57 @@
   const ease = x => { x = clamp(x); return x * x * (3 - 2 * x); };
   const ramp = (p, a, b) => ease((p - a) / (b - a));
   const mix = (a, b, t) => a + (b - a) * t;
-  function draw(ctx, {x, y, size, progress = 1, light = 1, viewport}) {
-    const p = clamp(progress), scale = size / 74;
-    const arrivals = [1, ramp(p,.12,.26), ramp(p,.28,.42), ramp(p,.44,.55)];
-    const surround = ramp(p,.82,.98), inner = mix(1,.74,surround);
+  function draw(ctx, {x, y, size, progress = 1, light = 1, viewport,
+    bars = 1 + ramp(progress,.12,.26) + ramp(progress,.28,.42) + ramp(progress,.44,.55),
+    slant = 0, angle = 0, frame = ramp(progress,.82,.98), weight = 1}) {
+    const p = clamp(progress), scale = size / 74, surround = clamp(frame);
+    const inner = mix(1,.74,surround), centres = [18.48975,39.6196,60.75,82];
+    const counts = [18.48975,29.0547,39.6196,50];
+    const part = Math.max(0,Math.min(3,bars-1)), index = Math.min(2,Math.floor(part));
+    const origin = mix(counts[index],counts[index+1],part-index);
     const rgb = [16,8,0].map(shift => Math.round(mix((0x004fef >> shift) & 255, (0xf8fbff >> shift) & 255, light)));
     const paint = `rgb(${rgb.join(',')})`;
-    let ox = x - 46.8825 * scale, oy = y - 50 * scale;
-    const left = 4, right = 90, top = 2, bottom = 104;
+    const shapes = segments.map((path,i) => ({path,i,alpha:clamp(bars-i),
+      x: i<2 ? mix(0,(i-.5)*33.64,slant) : 0,
+      y: mix(centres[i]-origin,0,i<2?slant:0),
+      angle:i<2?slant*(-66*Math.PI/180):0,
+      weight:weight*mix(1,.637,i<2?slant:0)})).filter(s=>s.alpha>0);
+    const points = [];
+    const transform = (px,py) => ({x:(px*Math.cos(angle)-py*Math.sin(angle))*scale,
+      y:(px*Math.sin(angle)+py*Math.cos(angle))*scale});
+    shapes.forEach(s=>{
+      const halfWidth=s.i===3?23.86:33.676,halfHeight=s.i===3?6:5.283;
+      for(const a of [-1,1])for(const b of [-1,1]) {
+        const sx=a*halfWidth,sy=b*halfHeight*s.weight;
+        points.push(transform((s.x+sx*Math.cos(s.angle)-sy*Math.sin(s.angle))*inner,
+          (s.y+sx*Math.sin(s.angle)+sy*Math.cos(s.angle))*inner));
+      }
+    });
+    if(surround>0)for(const px of [-42.9,43.2])for(const py of [-49,54])points.push(transform(px,py));
+    const bounds={left:Math.min(...points.map(p=>p.x)),right:Math.max(...points.map(p=>p.x)),
+      top:Math.min(...points.map(p=>p.y)),bottom:Math.max(...points.map(p=>p.y))};
     if (viewport) {
-      ox = Math.max(16 - left * scale, Math.min(viewport.width - 12 - right * scale, ox));
-      oy = Math.max(viewport.top - top * scale, Math.min(viewport.height - 16 - bottom * scale, oy));
+      x = Math.max(12-bounds.left,Math.min(viewport.width-12-bounds.right,x));
+      y = Math.max(viewport.top-bounds.top,Math.min(viewport.height-12-bounds.bottom,y));
     }
-    ctx.save(); ctx.translate(ox,oy); ctx.scale(scale,scale); ctx.fillStyle = paint;
+    ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(scale,scale);ctx.fillStyle=paint;
     if (surround > 0) {
+      ctx.save();ctx.translate(-46.8825,-50);
       ctx.save(); ctx.globalAlpha = surround * .055; ctx.fill(outline); ctx.restore();
       ctx.save(); ctx.strokeStyle = paint; ctx.lineWidth = 2.2; ctx.lineJoin = 'round';
       ctx.setLineDash([340]); ctx.lineDashOffset = 340 * (1 - surround); ctx.stroke(outline); ctx.restore();
+      ctx.restore();
     }
-    ctx.save(); ctx.translate(46.8825,50); ctx.scale(inner,inner); ctx.translate(-46.8825,-50);
-    segments.forEach((shape,i) => {
-      const t = arrivals[i]; if (!t) return;
-      ctx.save(); ctx.globalAlpha = i ? clamp(t * 3) : 1;
-      // Short movements stay inside the mark's travelling footprint.
-      ctx.translate(i === 1 ? 4 * (1 - t) : i === 2 ? -4 * (1 - t) : 0, i === 3 ? 8 * (1 - t) : 0);
-      ctx.fill(shape); ctx.restore();
+    ctx.save();ctx.scale(inner,inner);
+    shapes.forEach(s => {
+      ctx.save();ctx.globalAlpha=s.alpha;ctx.translate(s.x,s.y);ctx.rotate(s.angle);
+      ctx.scale(1,s.weight);ctx.translate(-46.8825,-centres[s.i]);
+      ctx.fill(s.path);ctx.restore();
     });
-    ctx.restore();
-    ctx.restore();
-    return {progress:p,stage:p<.12?'first-line':p<.28?'second-line':p<.44?'third-line':p<.82?'mark':'shield',
-      bounds:{left:ox+left*scale,top:oy+top*scale,right:ox+right*scale,bottom:oy+bottom*scale}};
+    ctx.restore();ctx.restore();
+    return {x,y,progress:p,bars,slant,frame:surround,angle,
+      stage:slant>.95?'association':bars<1.1?'first-line':bars<2.1?'second-line':bars<3.1?'third-line':surround>.9?'shield':'mark',
+      bounds:{left:x+bounds.left,top:y+bounds.top,right:x+bounds.right,bottom:y+bounds.bottom}};
   }
   window.shieldBrand = {draw};
 })();

@@ -26,6 +26,7 @@
   let enabled = false, canStick = false, raf = 0, resizeTimer, previousStep = -1;
   let width = 0, height = 0, header = 0, maxScroll = 0, launch = 0;
   let flowStart = 0, flowEnd = 1, publicAt = 1, shieldAt = 2;
+  let associationEnd = 0, apiStart = 0, apiEnd = 0, closingStart = 0;
   let source, milestones = [], routePoints = [], darkSections = [];
   let routeWidth = 0, routeHeight = 0, lastMark = null, measuredHeight = 0;
 
@@ -40,11 +41,17 @@
     canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
     canvas.getContext('2d')?.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
-  function add(at, x, y, phase, size) {
+  function add(at, x, y, phase, size, pose = {}, dock = null, documentY = null) {
     at = clamp(at, launch, maxScroll);
     if (milestones.length && at <= milestones.at(-1).at) return;
     milestones.push({at, x: clamp(x, 25, width - 25),
-      y: clamp(y, header + 42, height - 35), phase, size});
+      y: clamp(y, header + 42, height - 35), phase, size,
+      bars:4,slant:0,angle:0,frame:0,weight:1,...pose,dock,documentY});
+  }
+  function markSlot(selector) {
+    const r=rect($(selector)),scale=Math.min(r.width/68,r.height/75);
+    return {x:r.left+(r.width-68*scale)/2+33.8825*scale,
+      y:r.top+(r.height-75*scale)/2+37*scale,size:74*scale};
   }
   function measure() {
     width = innerWidth; height = innerHeight;
@@ -58,21 +65,23 @@
     maxScroll = Math.max(1, document.documentElement.scrollHeight - height);
     measuredHeight = $('main').offsetHeight;
     fitCanvas(overlay, width, height);
-    const anchor = window.shieldScene?.getTradeAnchor();
+    const anchor = window.shieldScene?.getRoofAnchor({rest:true});
     if (!anchor) return;
-    source = {x: anchor.x, y: anchor.y + scrollY, size: Math.max(size, anchor.size)};
-    launch = Math.max(0, source.y - height * .66);
+    source = {x: anchor.x, y: anchor.y + scrollY, size:anchor.size,angle:anchor.angle};
+    launch = Math.max(0, source.y - height * .58);
     const publicPosition = rect($('.association-row:not(.association-row--shielded) .association-row-position'));
-    const shieldPosition = rect($('.association-row--shielded .association-row-position'));
-    const position = r => ({x: r.right - 24, y: r.top + r.height * .48});
-    const p = position(publicPosition), s = position(shieldPosition);
-    publicAt = p.y - restingY;
+    const bridge = rect($('.association-row-break'));
+    const s={x:bridge.left+bridge.width/2,y:bridge.top+bridge.height/2};
+    publicAt = publicPosition.top + publicPosition.height*.48 - restingY;
     shieldAt = s.y - restingY;
+    associationEnd=shieldAt+Math.min(100,height*.1);
     milestones = [];
-    add(launch, source.x, source.y - launch, 'hero', source.size);
-    add(mix(launch, publicAt, .42), rail, restingY, 'hero-departure', size);
-    add(publicAt, p.x, restingY, 'public-position', size);
-    add(shieldAt, s.x, restingY, 'shielded-position', size);
+    add(launch,source.x,source.y-launch,'roof',source.size,{bars:1,angle:source.angle,weight:.18});
+    const firstEdge=mix(launch,shieldAt,.38),split=firstEdge+Math.min(85,(shieldAt-firstEdge)*.2);
+    add(firstEdge,rail,restingY,'first-edge',size,{bars:1});
+    add(split,rail,restingY,'edge-split',size,{bars:2});
+    add(shieldAt,s.x,restingY,'association-dock',22,{bars:2,slant:1,angle:mobile?Math.PI/2:0},'association',s.y);
+    add(associationEnd,s.x,s.y-associationEnd,'association-hold',22,{bars:2,slant:1,angle:mobile?Math.PI/2:0},'association',s.y);
 
     const boardRect = board.getBoundingClientRect();
     const boardTop = rect(track).top;
@@ -94,54 +103,62 @@
     }
     flowStart = Math.max(shieldAt + 100, flowStart);
     flowEnd = Math.max(flowStart + 100, flowEnd);
-    add(mix(shieldAt, flowStart, .45), rail, restingY, 'walkthrough-approach', size);
+    const secondEdge=mix(associationEnd,flowStart,.4);
+    add(secondEdge,rail,restingY,'second-edge',size,{bars:2,slant:1,angle:mobile?Math.PI/2:0});
+    add(mix(secondEdge,flowStart,.3),rail,restingY,'third-line',size,{bars:3});
+    add(mix(secondEdge,flowStart,.57),rail,restingY,'mark-assembled',size,{bars:4});
     nodes.forEach((n, i) => {
       const at = mix(flowStart, flowEnd, i / 3);
       const y = canStick ? header + 20 + n.y : boardTop + n.y - at;
-      add(at, n.x, y, `flow-${i}`, size);
+      const flowPose={frame:smooth(i/3)};
+      add(at, n.x, y, `flow-${i}`, size,flowPose);
       // Cross the gap between mobile rows, instead of diagonally cutting through their content.
       if (mobile && i === 1) {
         const nextAt = mix(flowStart, flowEnd, 2 / 3);
         const gapY = boardTop + (n.y + nodes[2].top) / 2;
         const a = mix(at, nextAt, .35), b = mix(at, nextAt, .65);
-        add(a, n.x, gapY - a, 'flow-row-turn', size);
-        add(b, nodes[2].x, gapY - b, 'flow-row-turn', size);
+        add(a, n.x, gapY - a, 'flow-row-turn', size,{frame:smooth(mix(1/3,2/3,.35))});
+        add(b, nodes[2].x, gapY - b, 'flow-row-turn', size,{frame:smooth(mix(1/3,2/3,.65))});
       }
     });
 
-    const api = rect($('.api-route-path li:nth-child(2)'));
-    const market = rect($('.api-route-path li:last-child'));
-    const apiY = api.top + api.height / 2;
-    const apiAt = apiY - restingY;
-    add(flowEnd + Math.min(180, (apiAt - flowEnd) * .32), rail, restingY, 'product-approach', size);
-    add(apiAt, mobile ? (api.right + market.left) / 2 : api.right - 26, restingY, 'terminal-and-api', size);
+    const api=markSlot('.api-mark-slot');
+    apiStart=api.y-restingY;
+    apiEnd=apiStart+Math.min(height*.28,restingY-header-65);
+    add(flowEnd + Math.min(180, (apiStart - flowEnd) * .32), rail, restingY, 'product-approach', size,{frame:1});
+    add(apiStart,api.x,restingY,'api-dock',api.size,{},'api',api.y);
+    add(apiEnd,api.x,api.y-apiEnd,'api-hold',api.size,{},'api',api.y);
     const faq = rect($('#faq'));
     const faqAt = faq.top + Math.min(180, faq.height * .25) - restingY;
-    add(mix(apiAt, faqAt, .45), rail, restingY, 'product-trust', size);
+    add(mix(apiEnd, faqAt, .45), rail, restingY, 'product-trust', size);
     add(faqAt, rail, restingY, 'questions', size);
-    const closing = rect($('.closing'));
-    const closingAt = Math.min(maxScroll - 160, closing.top - height * .25);
-    add(closingAt, rail, restingY, 'closing', size);
-    const footer = rect($('.site-footer'));
-    add(maxScroll, rail, footer.top + footer.height * .5 - maxScroll, 'footer', size);
+    const closing=markSlot('.closing-mark-slot');
+    closingStart=Math.min(maxScroll-1,closing.y-height*.66);
+    add(mix(faqAt,closingStart,.45),rail,restingY,'closing-approach',size);
+    add(closingStart,closing.x,closing.y-closingStart,'closing-dock',closing.size,{},'closing',closing.y);
+    add(maxScroll,closing.x,closing.y-maxScroll,'closing-hold',closing.size,{},'closing',closing.y);
     darkSections = Array.from(document.querySelectorAll('.hero,.product-section,.closing,.site-footer')).map(rect);
   }
 
   function sample(scroll) {
-    if (scroll < launch) {
-      const y = source.y - scroll, lowerEdge = height - 35;
-      const entry = smooth((lowerEdge - y) / Math.min(100, height * .34 - 35));
-      return {x: mix(width - (width < 681 ? 26 : 36), source.x, entry),
-        y: clamp(y, header + 42, lowerEdge), size: source.size, phase: 'hero'};
+    if (scroll <= launch) {
+      const roof=window.shieldScene.getRoofAnchor();
+      // Track the live roof while attached, including its small pointer movement.
+      if(milestones[0])Object.assign(milestones[0],{x:roof.x,y:roof.y+scroll-launch,size:roof.size,angle:roof.angle});
+      return {...roof,bars:1,slant:0,frame:0,weight:.18,phase:'roof',dock:'roof'};
     }
     for (let i = 1; i < milestones.length; i++) {
       const a = milestones[i - 1], b = milestones[i];
       if (scroll > b.at) continue;
       const t = smooth((scroll - a.at) / (b.at - a.at));
-      return {x: mix(a.x, b.x, t), y: mix(a.y, b.y, t),
-        size: mix(a.size, b.size, t), phase: t < .5 ? a.phase : b.phase};
+      const point={x:mix(a.x,b.x,t),
+        y:mix(a.documentY===null?a.y:a.documentY-scroll,b.documentY===null?b.y:b.documentY-scroll,t),
+        phase:t<.5?a.phase:b.phase,dock:a.dock===b.dock?a.dock:t===1?b.dock:null};
+      for(const key of ['size','bars','slant','angle','frame','weight'])point[key]=mix(a[key],b[key],t);
+      return point;
     }
-    return {...milestones.at(-1)};
+    const last=milestones.at(-1);
+    return {...last,y:last.documentY===null?last.y:last.documentY-scroll};
   }
   function paintRoute() {
     if (!routeInk) return;
@@ -163,7 +180,14 @@
     raf = 0;
     if (!ink || document.hidden) return;
     ink.clearRect(0, 0, width, height);
-    if (!enabled || !source) { lastMark = null; paintRoute(); return; }
+    if (!enabled || !source) {
+      lastMark = null;paintRoute();
+      exposure.style.setProperty('--association-mark-opacity','1');
+      $('.access-api').style.setProperty('--api-mark-opacity','1');
+      $('.closing').style.setProperty('--closing-mark-opacity','1');
+      $('.closing').style.setProperty('--closing-arrival','1');
+      return;
+    }
     const scroll = clamp(scrollY, 0, maxScroll);
     state.hero = clamp((scroll - launch) / Math.max(1, publicAt - launch));
     state.shield = clamp((scroll - publicAt) / Math.max(1, shieldAt - publicAt));
@@ -180,11 +204,19 @@
     }
     paintRoute();
     const point = sample(scroll), documentY = point.y + scroll;
+    exposure.style.setProperty('--association-mark-opacity',smooth((scroll-associationEnd)/70));
+    $('.access-api').style.setProperty('--api-mark-opacity',smooth((scroll-apiEnd)/90));
+    $('.closing').style.setProperty('--closing-mark-opacity','0');
+    $('.closing').style.setProperty('--closing-arrival',smooth((scroll-closingStart+140)/140));
     const light = darkSections.reduce((tone, r) => Math.max(tone,
       smooth((documentY - r.top) / 30) * smooth((r.bottom - documentY) / 30)), 0);
     const progress = clamp((scroll - launch) / Math.max(1, flowEnd - launch));
-    const brand = window.shieldBrand.draw(ink, {x:point.x,y:point.y,size:point.size,progress,light,
-      viewport:{width,height,top:header+12}});
+    // On arrival the canvas occupies the exact slot; the destination never shifts.
+    if(point.dock==='roof'&&(point.y<header||point.y>height)) {
+      lastMark={...point,progress,visible:false,alpha:0};return;
+    }
+    const brand = window.shieldBrand.draw(ink, {...point,progress,light,
+      viewport:point.dock==='roof'?null:{width,height,top:header+12}});
     lastMark = {...point, ...brand, visible:true, alpha:1};
   }
   function requestPaint() { if (!raf && !document.hidden) raf = requestAnimationFrame(paint); }
@@ -210,12 +242,14 @@
     },
     refresh: setup,
     getState: () => ({enabled, sticky: canStick, ...state, mark: lastMark, launch, maxScroll,
+      holds:{association:[shieldAt,associationEnd],api:[apiStart,apiEnd],closing:[closingStart,maxScroll]},
       milestones: milestones.map(({at,phase}) => ({at,phase}))})
   };
   window.addEventListener('scroll', requestPaint, {passive: true});
   window.addEventListener('resize', scheduleMeasure);
   document.addEventListener('shield-motion-change', setup);
   document.addEventListener('shield-model-ready', setup);
+  document.addEventListener('shield-roof-change', () => {if(scrollY<=launch)requestPaint();});
   preference.addEventListener('change', setup);
   document.addEventListener('visibilitychange', requestPaint);
   document.querySelectorAll('.qa details').forEach(detail => detail.addEventListener('toggle', scheduleMeasure));
