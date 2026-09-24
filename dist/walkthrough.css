@@ -54,11 +54,23 @@
 }
 
 /* The travelling mark needs a clear lane before the explanation below. */
+.walkthrough .flow-node {
+  padding-bottom: 38px;
+}
+
 .walkthrough .flow-nodes {
   padding-bottom: 26px;
 }
 
 @media (max-width: 680px) {
+  .walkthrough .flow-nodes {
+    row-gap: 48px;
+  }
+
+  .walkthrough .flow-node {
+    padding-bottom: 44px;
+  }
+
   .walkthrough .transfer-icon {
     width: 68px;
     height: 66px;
