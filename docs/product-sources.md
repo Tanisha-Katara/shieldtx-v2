@@ -8,6 +8,10 @@ Reviewed 24 September 2026. These notes ground the concept in ShieldTX's public 
 
 [Trust model](https://www.shieldtx.xyz/trust-model/): USDC reaches an Arbitrum vault through Avail Nexus. The user and ShieldTX can see the internal balance. A withdrawal requires protocol confirmation before the user signs a claim. Avoid implying invisible onchain activity, exclusive user visibility, or unconditional immediate withdrawals.
 
+## User product clarifications
+
+On 24 September 2026, the user specified shielded deposits, a fresh unlinked wallet for each position with no account or wallet reuse, terminal trading without hidden charges, and withdrawals that are shielded again before reaching a chosen wallet with no hidden withdrawal charges. These statements supply the revised Deposit → Shield → Execute → Withdraw copy; they have not been independently validated. The copy describes shielding rather than promising that tracing is impossible.
+
 ## Live destinations
 
 - [Terminal](https://beta.shieldtx.xyz/)

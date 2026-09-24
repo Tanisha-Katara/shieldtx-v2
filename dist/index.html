@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="product.css">
   <link rel="stylesheet" href="exposure.css">
   <link rel="stylesheet" href="motion.css">
+  <link rel="stylesheet" href="walkthrough.css">
   <script src="assets/three.min.js" defer></script>
   <script src="brand-mark.js" defer></script>
   <script src="model.js" defer></script>
@@ -119,18 +120,17 @@
 
   <section class="walkthrough section-space" id="how-it-works" aria-labelledby="flow-title">
     <div class="wrap">
-      <div class="section-heading"><p class="eyebrow">02 / FOLLOW THE TRADE</p></div>
-      <div class="flow-intro"><h2 id="flow-title">How your trade<br><em>reaches Hyperliquid.</em></h2></div>
+      <div class="section-heading"><p class="eyebrow">02 / HOW IT WORKS</p></div>
+      <div class="flow-intro"><h2 id="flow-title">From deposit<br><em>to withdrawal.</em></h2></div>
       <div class="flow-board" data-step="0">
-        <div class="flow-board-top"><span class="small-label">FIG. 02 / EXECUTION JOURNEY</span><div class="flow-playback"><span id="flow-status" role="status">Scroll to follow</span><button id="flow-replay" aria-label="Return to the first walkthrough step"><span aria-hidden="true">↺</span> Replay</button></div></div>
-        <div class="flow-nodes" role="group" aria-label="Trade walkthrough steps"><span class="flow-traveller" aria-hidden="true"><span class="mini-cube"></span></span>
-          <button class="flow-node is-active" data-step="0" aria-pressed="true"><span class="flow-number">01</span><span class="node-visual"><span class="wallet-icon large" aria-hidden="true"></span></span><strong>Fund</strong><span>Your ShieldTX balance</span><span class="node-progress"></span></button>
-          <button class="flow-node" data-step="1" aria-pressed="false"><span class="flow-number">02</span><span class="node-visual"><span id="flow-model" data-tone="ink" aria-hidden="true"></span></span><strong>Shield</strong><span>Your wallet association</span><span class="node-progress"></span></button>
-          <button class="flow-node" data-step="2" aria-pressed="false"><span class="flow-number">03</span><span class="node-visual"><span class="account-stack" aria-hidden="true"><i></i><i></i><i><span class="mini-cube"></span></i></span></span><strong>Create</strong><span>A fresh trading account</span><span class="node-progress"></span></button>
-          <button class="flow-node" data-step="3" aria-pressed="false"><span class="flow-number">04</span><span class="node-visual"><span class="market-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></span><strong>Execute</strong><span>On Hyperliquid</span><span class="node-progress"></span></button>
+        <div class="flow-board-top"><span class="small-label">THE SHIELDTX PROCESS</span><div class="flow-playback"><span id="flow-status" role="status">Scroll to follow</span><button id="flow-replay" aria-label="Return to the first walkthrough step"><span aria-hidden="true">↺</span> Replay</button></div></div>
+        <div class="flow-nodes" role="group" aria-label="Trade walkthrough steps">
+          <button class="flow-node is-active" data-step="0" aria-pressed="true"><span class="flow-number">01</span><span class="node-visual"><span class="transfer-icon transfer-in" aria-hidden="true"><span class="wallet-icon large"></span><i></i></span></span><strong>Deposit</strong><span>Your deposits are shielded</span><span class="node-progress"></span></button>
+          <button class="flow-node" data-step="1" aria-pressed="false"><span class="flow-number">02</span><span class="node-visual"><span id="flow-model" data-tone="ink" aria-hidden="true"></span></span><strong>Shield</strong><span>Fresh wallets. Never reused.</span><span class="node-progress"></span></button>
+          <button class="flow-node" data-step="2" aria-pressed="false"><span class="flow-number">03</span><span class="node-visual"><span class="market-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></span><strong>Execute</strong><span>Open, close and manage positions</span><span class="node-progress"></span></button>
+          <button class="flow-node" data-step="3" aria-pressed="false"><span class="flow-number">04</span><span class="node-visual"><span class="transfer-icon transfer-out" aria-hidden="true"><span class="wallet-icon large"></span><i></i></span></span><strong>Withdraw</strong><span>To a wallet of your choice</span><span class="node-progress"></span></button>
         </div>
-        <div class="flow-return"><span aria-hidden="true">↶</span> Closing proceeds return to your ShieldTX balance.</div>
-        <div class="flow-detail"><div class="flow-detail-count"><span id="detail-count">01</span><small>/ 04</small></div><div><h3 id="detail-title">Fund your ShieldTX balance.</h3><p id="detail-copy">Fund your balance with USDC. This is the starting point for your shielded trading activity.</p></div><span class="position-chip"><span class="mini-cube" aria-hidden="true"></span> POSITION 001</span></div>
+        <div class="flow-detail"><div class="flow-detail-count"><span id="detail-count">01</span><small>/ 04</small></div><div><h3 id="detail-title">Deposit into your shielded balance.</h3><p id="detail-copy">Your deposits are shielded as they enter your ShieldTX balance.</p></div></div>
       </div>
 
     </div>

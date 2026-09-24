@@ -6,10 +6,10 @@ const preference=window.matchMedia('(prefers-reduced-motion: reduce)');
 let motionChoice=null;
 const motionDisabled=()=>preference.matches||motionChoice===true;
 const steps=[
-  {title:'Fund your ShieldTX balance.',copy:'Fund your balance with USDC. This is the starting point for your shielded trading activity.'},
-  {title:'Shield the funding-wallet association.',copy:'ShieldTX separates your funding wallet from the account that will execute your trade. Onchain activity remains public.'},
-  {title:'Create a fresh trading account.',copy:'A fresh account is created for the trade. Public position data appears against that account.'},
-  {title:'Execute on Hyperliquid.',copy:'The account submits your order to Hyperliquid. After the position closes, proceeds return to your ShieldTX balance.'},
+  {title:'Deposit into your shielded balance.',copy:'Your deposits are shielded as they enter your ShieldTX balance.'},
+  {title:'A fresh wallet for every trade.',copy:'Each position gets a new, unlinked wallet. No account or wallet is reused.'},
+  {title:'Trade through the terminal.',copy:'Open and close positions and run your strategies in the terminal. No hidden charges.'},
+  {title:'Withdraw to a wallet you choose.',copy:'ShieldTX shields the withdrawal again before sending your profits to your chosen wallet. No hidden withdrawal charges.'},
 ];
 let selectedStep=0,lastRenderedStep=0,manualInspection=null,detailAnimation=null;
 function selectStep(step){

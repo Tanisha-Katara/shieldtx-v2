@@ -71,6 +71,13 @@ User direction: clear institutional writing, restrained animation and a direct c
 
 ## Brand assembly
 
-- Replace the travelling cube with the approved logo motion study: three official bars, tapered base, full ShieldTX wordmark, then a shield framing the original mark.
+- Replace the travelling cube with three official bars, the tapered base, then a shield framing the original mark. The travelling element contains no wordmark, following the visual review.
 - Complete the transformation during the execution walkthrough and carry the finished shield through the remaining page.
 - Reuse the continuous path and native scrolling; keep the assembled shield visible when motion is off.
+
+## Walkthrough simplification
+
+- Show Deposit → Shield → Execute → Withdraw, with directional wallet icons for the first and last stages.
+- Explain shielded deposits, a fresh unlinked wallet for each position, terminal trading and reshielded withdrawals to a chosen wallet. State the absence of hidden trading and withdrawal charges using the user's product clarification.
+- Remove the return-path annotation and position identifier from the board; give the travelling symbol a clear lane above the explanation.
+- Keep the travelling mark compact and free of wordmark text so it does not obscure the step labels.
