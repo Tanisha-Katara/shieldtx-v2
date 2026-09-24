@@ -14,11 +14,6 @@
   overlay.setAttribute('aria-hidden', 'true');
   document.body.append(overlay);
   const ink = overlay.getContext('2d');
-  const routes = document.createElement('canvas');
-  routes.className = 'flow-route-canvas';
-  routes.setAttribute('aria-hidden', 'true');
-  $('.flow-nodes').append(routes);
-  const routeInk = routes.getContext('2d');
   const track = document.createElement('div');
   track.className = 'motion-flow-track';
   board.before(track); track.append(board);
@@ -27,8 +22,8 @@
   let width = 0, height = 0, header = 0, maxScroll = 0, launch = 0;
   let flowStart = 0, flowEnd = 1, publicAt = 1, shieldAt = 2;
   let associationEnd = 0, apiStart = 0, apiEnd = 0, closingStart = 0;
-  let source, milestones = [], routePoints = [], darkSections = [];
-  let routeWidth = 0, routeHeight = 0, lastMark = null, measuredHeight = 0;
+  let source, milestones = [], darkSections = [];
+  let lastMark = null, measuredHeight = 0;
 
   function rect(element) {
     const r = element.getBoundingClientRect();
@@ -45,7 +40,7 @@
     at = clamp(at, launch, maxScroll);
     if (milestones.length && at <= milestones.at(-1).at) return;
     milestones.push({at, x: clamp(x, 25, width - 25),
-      y: clamp(y, header + 42, height - 35), phase, size,
+      y: pose.unclamped?y:clamp(y, header + 42, height - 35), phase, size,
       bars:4,slant:0,angle:0,frame:0,weight:1,...pose,dock,documentY});
   }
   function markSlot(selector) {
@@ -89,10 +84,6 @@
       const r = node.getBoundingClientRect();
       return {x: r.left + r.width / 2, y: r.bottom - boardRect.top - 3, top: r.top - boardRect.top};
     });
-    const parent = $('.flow-nodes').getBoundingClientRect();
-    routeWidth = parent.width; routeHeight = parent.height + 24;
-    fitCanvas(routes, routeWidth, routeHeight);
-    routePoints = nodes.map(n => ({x: n.x - parent.left, y: n.y + boardRect.top - parent.top}));
     if (canStick) {
       flowStart = boardTop - header - 20;
       flowEnd = flowStart + height * .85;
@@ -107,25 +98,27 @@
     add(secondEdge,rail,restingY,'second-edge',size,{bars:2,slant:1,angle:mobile?Math.PI/2:0});
     add(mix(secondEdge,flowStart,.3),rail,restingY,'third-line',size,{bars:3});
     add(mix(secondEdge,flowStart,.57),rail,restingY,'mark-assembled',size,{bars:4});
-    nodes.forEach((n, i) => {
+    const flowMark=markSlot('.flow-mark-slot');
+    // The mark rests inside Shield. The underline carries the step progression.
+    nodes.forEach((_, i) => {
       const at = mix(flowStart, flowEnd, i / 3);
-      const y = canStick ? header + 20 + n.y : boardTop + n.y - at;
-      const flowPose={frame:smooth(i/3)};
-      add(at, n.x, y, `flow-${i}`, size,flowPose);
-      // Cross the gap between mobile rows, instead of diagonally cutting through their content.
-      if (mobile && i === 1) {
-        const nextAt = mix(flowStart, flowEnd, 2 / 3);
-        const gapY = boardTop + (n.y + nodes[2].top) / 2;
-        const a = mix(at, nextAt, .35), b = mix(at, nextAt, .65);
-        add(a, n.x, gapY - a, 'flow-row-turn', size,{frame:smooth(mix(1/3,2/3,.35))});
-        add(b, nodes[2].x, gapY - b, 'flow-row-turn', size,{frame:smooth(mix(1/3,2/3,.65))});
-      }
+      add(at,flowMark.x,flowMark.y-at,`flow-${i}`,flowMark.size,{},'flow');
     });
 
     const api=markSlot('.api-mark-slot');
     apiStart=api.y-restingY;
     apiEnd=apiStart+Math.min(height*.28,restingY-header-65);
-    add(flowEnd + Math.min(180, (apiStart - flowEnd) * .32), rail, restingY, 'product-approach', size,{frame:1});
+    const departure=Math.min(canStick?240:180,(apiStart-flowEnd)*.38);
+    if(canStick){
+      // Lift clear of the illustrations before crossing to the outer edge.
+      add(flowEnd+departure*.35,flowMark.x,header+38,'flow-lift',size,{unclamped:true});
+      add(flowEnd+departure*.65,rail,header+38,'flow-release',size,{unclamped:true});
+    }else{
+      // On a short viewport Shield has scrolled upward. Depart above the content,
+      // then re-enter along the edge rather than clamping the mark over a label.
+      add(flowEnd+departure*.4,rail,header-45,'flow-release',mobile?22:size,{unclamped:true});
+    }
+    add(flowEnd+departure,rail,restingY,'product-approach',mobile?22:size);
     add(apiStart,api.x,restingY,'api-dock',api.size,{},'api',api.y);
     add(apiEnd,api.x,api.y-apiEnd,'api-hold',api.size,{},'api',api.y);
     const faq = rect($('#faq'));
@@ -151,37 +144,29 @@
       const a = milestones[i - 1], b = milestones[i];
       if (scroll > b.at) continue;
       const t = smooth((scroll - a.at) / (b.at - a.at));
-      const point={x:mix(a.x,b.x,t),
-        y:mix(a.documentY===null?a.y:a.documentY-scroll,b.documentY===null?b.y:b.documentY-scroll,t),
+      const location=node=>{
+        if(node.dock==='flow'){
+          const slot=markSlot('.flow-mark-slot');return{x:slot.x,y:slot.y-scroll,size:slot.size};
+        }
+        return{x:node.x,y:node.documentY===null?node.y:node.documentY-scroll,size:node.size};
+      };
+      const from=location(a),to=location(b);
+      const point={x:mix(from.x,to.x,t),y:mix(from.y,to.y,t),size:mix(from.size,to.size,t),
+        unclamped:a.dock==='flow'||b.dock==='flow'||a.unclamped||b.unclamped,
         phase:t<.5?a.phase:b.phase,dock:a.dock===b.dock?a.dock:t===1?b.dock:null};
-      for(const key of ['size','bars','slant','angle','frame','weight'])point[key]=mix(a[key],b[key],t);
+      for(const key of ['bars','slant','angle','frame','weight'])point[key]=mix(a[key],b[key],t);
       return point;
     }
     const last=milestones.at(-1);
     return {...last,y:last.documentY===null?last.y:last.documentY-scroll};
-  }
-  function paintRoute() {
-    if (!routeInk) return;
-    routeInk.clearRect(0, 0, routeWidth, routeHeight);
-    if (!enabled || width < 681 || routePoints.length !== 4) return;
-    const p = routePoints, progress = state.flow * 3;
-    routeInk.lineWidth = 1; routeInk.strokeStyle = '#c9d3ce';
-    routeInk.beginPath(); routeInk.moveTo(p[0].x, p[0].y);
-    p.slice(1).forEach(n => routeInk.lineTo(n.x, n.y)); routeInk.stroke();
-    routeInk.strokeStyle = '#004fef'; routeInk.beginPath(); routeInk.moveTo(p[0].x, p[0].y);
-    for (let i = 0; i < 3; i++) {
-      const t = smooth(progress - i);
-      if (!t) break;
-      routeInk.lineTo(mix(p[i].x, p[i + 1].x, t), mix(p[i].y, p[i + 1].y, t));
-    }
-    routeInk.stroke();
   }
   function paint() {
     raf = 0;
     if (!ink || document.hidden) return;
     ink.clearRect(0, 0, width, height);
     if (!enabled || !source) {
-      lastMark = null;paintRoute();
+      lastMark = null;
+      board.style.setProperty('--flow-mark-opacity','1');
       exposure.style.setProperty('--association-mark-opacity','1');
       $('.access-api').style.setProperty('--api-mark-opacity','1');
       $('.closing').style.setProperty('--closing-mark-opacity','1');
@@ -202,8 +187,8 @@
       previousStep = step;
       document.dispatchEvent(new CustomEvent('shield-flow-step', {detail: {step, progress: state.flow}}));
     }
-    paintRoute();
     const point = sample(scroll), documentY = point.y + scroll;
+    board.style.setProperty('--flow-mark-opacity',smooth((scroll-flowEnd)/90));
     exposure.style.setProperty('--association-mark-opacity',smooth((scroll-associationEnd)/70));
     $('.access-api').style.setProperty('--api-mark-opacity',smooth((scroll-apiEnd)/90));
     $('.closing').style.setProperty('--closing-mark-opacity','0');
@@ -212,11 +197,11 @@
       smooth((documentY - r.top) / 30) * smooth((r.bottom - documentY) / 30)), 0);
     const progress = clamp((scroll - launch) / Math.max(1, flowEnd - launch));
     // On arrival the canvas occupies the exact slot; the destination never shifts.
-    if(point.dock==='roof'&&(point.y<header||point.y>height)) {
+    if((point.dock==='roof'||point.unclamped)&&(point.y+point.size<header||point.y-point.size>height)) {
       lastMark={...point,progress,visible:false,alpha:0};return;
     }
     const brand = window.shieldBrand.draw(ink, {...point,progress,light,
-      viewport:point.dock==='roof'?null:{width,height,top:header+12}});
+      viewport:point.dock==='roof'||point.unclamped?null:{width,height,top:header+12}});
     lastMark = {...point, ...brand, visible:true, alpha:1};
   }
   function requestPaint() { if (!raf && !document.hidden) raf = requestAnimationFrame(paint); }
@@ -242,7 +227,7 @@
     },
     refresh: setup,
     getState: () => ({enabled, sticky: canStick, ...state, mark: lastMark, launch, maxScroll,
-      holds:{association:[shieldAt,associationEnd],api:[apiStart,apiEnd],closing:[closingStart,maxScroll]},
+      holds:{association:[shieldAt,associationEnd],flow:[flowStart,flowEnd],api:[apiStart,apiEnd],closing:[closingStart,maxScroll]},
       milestones: milestones.map(({at,phase}) => ({at,phase}))})
   };
   window.addEventListener('scroll', requestPaint, {passive: true});

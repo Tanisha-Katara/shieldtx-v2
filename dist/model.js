@@ -236,7 +236,6 @@
     requestFrame();
   }
   makeView(document.getElementById('hero-model'),true);
-  makeView(document.getElementById('flow-model'),false);
   window.shieldScene={
     setTradeOverlay(value){
       tradeOverlay=Boolean(value);

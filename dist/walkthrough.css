@@ -53,22 +53,84 @@
   transform: rotate(225deg);
 }
 
-/* The travelling mark needs a clear lane before the explanation below. */
+/* The brand docks in Shield while a quiet underline follows the explanation. */
 .walkthrough .flow-node {
-  padding-bottom: 38px;
+  padding-bottom: 26px;
+  background: transparent;
+  transition: color 150ms ease;
 }
 
 .walkthrough .flow-nodes {
-  padding-bottom: 26px;
+  padding-bottom: 20px;
+}
+
+.walkthrough .flow-node.is-active {
+  background: transparent;
+  color: var(--blue);
+}
+
+.walkthrough .flow-node .node-visual,
+.walkthrough .flow-node.is-active .node-visual {
+  color: #556975;
+  transform: none;
+  transition: none;
+}
+
+.walkthrough .node-progress {
+  left: 20px;
+  right: 20px;
+  height: 2px;
+}
+
+.walkthrough .flow-mark-slot {
+  display: block;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 72px;
+}
+
+.walkthrough .flow-mark-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--blue);
+  -webkit-mask: url('assets/shieldtx-mark.svg') center / contain no-repeat;
+  mask: url('assets/shieldtx-mark.svg') center / contain no-repeat;
+  opacity: var(--flow-mark-opacity, 1);
+}
+
+.motion-off .walkthrough .flow-mark-icon {
+  opacity: 1;
 }
 
 @media (max-width: 680px) {
   .walkthrough .flow-nodes {
-    row-gap: 48px;
+    row-gap: 16px;
+    padding-bottom: 16px;
   }
 
   .walkthrough .flow-node {
-    padding-bottom: 44px;
+    padding-bottom: 26px;
+  }
+
+  .walkthrough .node-visual {
+    height: 88px;
+  }
+
+  .walkthrough .node-progress {
+    left: 12px;
+    right: 12px;
+  }
+
+  .walkthrough .flow-mark-slot {
+    flex-basis: 52px;
+    width: 52px;
+    height: 60px;
+  }
+
+  .walkthrough .flow-detail {
+    padding-block: 18px;
+    min-height: 148px;
   }
 
   .walkthrough .transfer-icon {
@@ -91,5 +153,15 @@
   .walkthrough .transfer-icon > i {
     left: 32px;
     height: 31px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .walkthrough .flow-mark-icon {
+    opacity: 1;
+  }
+
+  .walkthrough .flow-node {
+    transition: none;
   }
 }

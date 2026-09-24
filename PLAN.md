@@ -90,3 +90,10 @@ User direction: clear institutional writing, restrained animation and a direct c
 - Fit the completed mark inside a reserved API slot and hold its position relative to the box as the page scrolls.
 - Replace each open FAQ's plus with the small official mark, without a border.
 - Finish inside the closing headline rather than leaving a floating mark beside the footer. Preserve static equivalents for reduced motion.
+
+## Quiet walkthrough
+
+- Replace the Shield step's temple with the official mark. Keep it docked there for the four-step explanation, then release it toward the API.
+- Remove the travelling progress track and filled active cards. Use the active label and a thin underline to guide reading.
+- Remove the extra space previously reserved for the moving mark, especially between mobile rows.
+- Let the dock follow its element during native scrolling; never clamp an offscreen Shield icon over the step text. Preserve the static icon with motion disabled.

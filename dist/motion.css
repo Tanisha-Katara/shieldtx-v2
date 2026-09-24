@@ -1,6 +1,5 @@
 /* The page remains a normal scroll document. These layers only narrate it. */
 .trade-journey-canvas{position:fixed;inset:0;pointer-events:none;z-index:18;max-width:none;contain:strict}
-.flow-route-canvas{position:absolute;inset:0;pointer-events:none;z-index:3;max-width:none}
 .flow-node[data-step="3"]:after{display:none}
 .motion-flow-track{position:relative}
 .motion-flow-track.is-sticky{height:calc(var(--flow-board-height) + 85vh)}
@@ -15,7 +14,7 @@
 .scroll-story-enabled #exposure .association-row-break{opacity:var(--association-mark-opacity,0)}
 .scroll-story-enabled .closing h2{opacity:calc(.65 + var(--closing-arrival,0)*.35)}
 .scroll-story-enabled .flow-board .node-progress{transform-origin:left center}
-.motion-off .trade-journey-canvas,.motion-off .flow-route-canvas{display:none}
+.motion-off .trade-journey-canvas{display:none}
 .motion-off .motion-flow-track{height:auto}
 .motion-off .motion-flow-track>.flow-board{position:static}
 @media(max-width:1100px){
@@ -25,10 +24,9 @@
   .scroll-story-enabled #exposure .association-row-rule{transform:scaleY(var(--public-link,1));transform-origin:top center}
   .scroll-story-enabled #exposure .association-row--shielded .association-row-rule{transform:scaleY(calc(1 - var(--association-break,0)*.55))}
   .scroll-story-enabled #exposure .association-row--shielded .association-row-rule:last-child{transform-origin:bottom center}
-  .flow-route-canvas{display:none}
 }
 @media(prefers-reduced-motion:reduce){
-  .trade-journey-canvas,.flow-route-canvas{display:none}
+  .trade-journey-canvas{display:none}
   .motion-flow-track{height:auto!important}
   .motion-flow-track>.flow-board{position:static!important}
 }
