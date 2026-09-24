@@ -1,13 +1,14 @@
 (() => {
   'use strict';
   const $ = selector => document.querySelector(selector);
-  const preference = matchMedia('(prefers-reduced-motion: reduce)');
-  const clamp = value => Math.max(0, Math.min(1, value));
+  const clamp = (value, low = 0, high = 1) => Math.max(low, Math.min(high, value));
   const mix = (a, b, t) => a + (b - a) * t;
-  const smooth = value => { const t = clamp(value); return t * t * (3 - 2 * t); };
+  const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
+  const preference = matchMedia('(prefers-reduced-motion: reduce)');
   const hero = $('.hero'), exposure = $('#exposure'), board = $('.flow-board');
   if (!hero || !exposure || !board) return;
 
+  // One actor and one scroll clock for the entire document.
   const overlay = document.createElement('canvas');
   overlay.className = 'trade-journey-canvas';
   overlay.setAttribute('aria-hidden', 'true');
@@ -20,185 +21,221 @@
   const routeInk = routes.getContext('2d');
   const track = document.createElement('div');
   track.className = 'motion-flow-track';
-  board.before(track);
-  track.append(board);
+  board.before(track); track.append(board);
   const state = {hero: 0, shield: 0, flow: 0};
-  let enabled = false, context, flowTrigger, raf = 0, resizeTimer, previousStep = -1;
-  let sourcePoint, publicPoint, shieldPoint, viewportWidth, viewportHeight, routePoints = [];
-  let routeWidth = 0, routeHeight = 0, canStick = false;
+  let enabled = false, canStick = false, raf = 0, resizeTimer, previousStep = -1;
+  let width = 0, height = 0, header = 0, maxScroll = 0, launch = 0;
+  let flowStart = 0, flowEnd = 1, publicAt = 1, shieldAt = 2;
+  let source, milestones = [], routePoints = [], darkSections = [];
+  let routeWidth = 0, routeHeight = 0, lastCube = null, measuredHeight = 0;
 
-  function documentPoint(element) {
-    if (!element) return null;
-    const rect = element.getBoundingClientRect();
-    return {x: Math.min(innerWidth - 31, rect.right - 24), y: rect.top + scrollY + rect.height * .48};
+  function rect(element) {
+    const r = element.getBoundingClientRect();
+    return {left: r.left, right: r.right, top: r.top + scrollY,
+      bottom: r.bottom + scrollY, width: r.width, height: r.height};
   }
-  function fitCanvas(canvas, width, height) {
+  function fitCanvas(canvas, w, h) {
     const ratio = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * ratio);
-    canvas.height = Math.round(height * ratio);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    canvas.width = Math.round(w * ratio); canvas.height = Math.round(h * ratio);
+    canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
     canvas.getContext('2d')?.setTransform(ratio, 0, 0, ratio, 0, 0);
   }
+  function add(at, x, y, phase, size) {
+    at = clamp(at, launch, maxScroll);
+    if (milestones.length && at <= milestones.at(-1).at) return;
+    milestones.push({at, x: clamp(x, 25, width - 25),
+      y: clamp(y, header + 42, height - 35), phase, size});
+  }
   function measure() {
-    viewportWidth = innerWidth; viewportHeight = innerHeight;
-    fitCanvas(overlay, viewportWidth, viewportHeight);
+    width = innerWidth; height = innerHeight;
+    header = $('.site-header').offsetHeight;
+    const mobile = width < 681, size = mobile ? 27 : 32;
+    const rail = width - (mobile ? 26 : 36), restingY = height * .53;
+    track.classList.remove('is-sticky');
+    canStick = enabled && width >= 900 && board.offsetHeight + header + 55 < height;
+    track.style.setProperty('--flow-board-height', `${board.offsetHeight}px`);
+    track.classList.toggle('is-sticky', canStick);
+    maxScroll = Math.max(1, document.documentElement.scrollHeight - height);
+    measuredHeight = $('main').offsetHeight;
+    fitCanvas(overlay, width, height);
     const anchor = window.shieldScene?.getTradeAnchor();
-    if (anchor) sourcePoint = {x: anchor.x, y: anchor.y + scrollY, size: anchor.size};
-    publicPoint = documentPoint($('.association-row:not(.association-row--shielded) .association-row-position')) ||
-      documentPoint($('.trade-card'));
-    shieldPoint = documentPoint($('.association-row--shielded .association-row-position')) || publicPoint;
-    const parent = $('.flow-nodes').getBoundingClientRect();
-    routeWidth = parent.width; routeHeight = parent.height + 16;
-    fitCanvas(routes, routeWidth, routeHeight);
-    routePoints = Array.from(document.querySelectorAll('.flow-node')).map(node => {
-      const rect = node.getBoundingClientRect();
-      return {x: rect.left + rect.width / 2 - parent.left, y: rect.bottom - parent.top - 3};
+    if (!anchor) return;
+    source = {x: anchor.x, y: anchor.y + scrollY, size: Math.max(size, anchor.size)};
+    launch = Math.max(0, source.y - height * .66);
+    const publicPosition = rect($('.association-row:not(.association-row--shielded) .association-row-position'));
+    const shieldPosition = rect($('.association-row--shielded .association-row-position'));
+    const position = r => ({x: r.right - 24, y: r.top + r.height * .48});
+    const p = position(publicPosition), s = position(shieldPosition);
+    publicAt = p.y - restingY;
+    shieldAt = s.y - restingY;
+    milestones = [];
+    add(launch, source.x, source.y - launch, 'hero', source.size);
+    add(mix(launch, publicAt, .42), rail, restingY, 'hero-departure', size);
+    add(publicAt, p.x, restingY, 'public-position', size);
+    add(shieldAt, s.x, restingY, 'shielded-position', size);
+
+    const boardRect = board.getBoundingClientRect();
+    const boardTop = rect(track).top;
+    const nodes = Array.from(document.querySelectorAll('.flow-node')).map(node => {
+      const r = node.getBoundingClientRect();
+      return {x: r.left + r.width / 2, y: r.bottom - boardRect.top - 3, top: r.top - boardRect.top};
     });
-    requestPaint();
+    const parent = $('.flow-nodes').getBoundingClientRect();
+    routeWidth = parent.width; routeHeight = parent.height + 24;
+    fitCanvas(routes, routeWidth, routeHeight);
+    routePoints = nodes.map(n => ({x: n.x - parent.left, y: n.y + boardRect.top - parent.top}));
+    if (canStick) {
+      flowStart = boardTop - header - 20;
+      flowEnd = flowStart + height * .85;
+    } else {
+      flowStart = boardTop + nodes[0].y - height * .66;
+      const available = nodes[3].y - nodes[0].y + height * .66 - header - 50;
+      flowEnd = flowStart + Math.min(available, Math.max(320, nodes[3].y - nodes[0].y + height * .24));
+    }
+    flowStart = Math.max(shieldAt + 100, flowStart);
+    flowEnd = Math.max(flowStart + 100, flowEnd);
+    add(mix(shieldAt, flowStart, .45), rail, restingY, 'walkthrough-approach', size);
+    nodes.forEach((n, i) => {
+      const at = mix(flowStart, flowEnd, i / 3);
+      const y = canStick ? header + 20 + n.y : boardTop + n.y - at;
+      add(at, n.x, y, `flow-${i}`, size);
+      // Cross the gap between mobile rows, instead of diagonally cutting through their content.
+      if (mobile && i === 1) {
+        const nextAt = mix(flowStart, flowEnd, 2 / 3);
+        const gapY = boardTop + (n.y + nodes[2].top) / 2;
+        const a = mix(at, nextAt, .35), b = mix(at, nextAt, .65);
+        add(a, n.x, gapY - a, 'flow-row-turn', size);
+        add(b, nodes[2].x, gapY - b, 'flow-row-turn', size);
+      }
+    });
+
+    const api = rect($('.api-route-path li:nth-child(2)'));
+    const market = rect($('.api-route-path li:last-child'));
+    const apiY = api.top + api.height / 2;
+    const apiAt = apiY - restingY;
+    add(flowEnd + Math.min(180, (apiAt - flowEnd) * .32), rail, restingY, 'product-approach', size);
+    add(apiAt, mobile ? (api.right + market.left) / 2 : api.right - 26, restingY, 'terminal-and-api', size);
+    const faq = rect($('#faq'));
+    const faqAt = faq.top + Math.min(180, faq.height * .25) - restingY;
+    add(mix(apiAt, faqAt, .45), rail, restingY, 'product-trust', size);
+    add(faqAt, rail, restingY, 'questions', size);
+    const closing = rect($('.closing'));
+    const closingAt = Math.min(maxScroll - 160, closing.top - height * .25);
+    add(closingAt, rail, restingY, 'closing', size);
+    const footer = rect($('.site-footer'));
+    add(maxScroll, rail, footer.top + footer.height * .5 - maxScroll, 'footer', size);
+    darkSections = Array.from(document.querySelectorAll('.hero,.product-section,.closing,.site-footer')).map(rect);
   }
 
-  function cube(ctx, x, y, size, alpha, dark = false) {
+  function sample(scroll) {
+    if (scroll < launch) {
+      const y = source.y - scroll, lowerEdge = height - 35;
+      const entry = smooth((lowerEdge - y) / Math.min(100, height * .34 - 35));
+      return {x: mix(width - (width < 681 ? 26 : 36), source.x, entry),
+        y: clamp(y, header + 42, lowerEdge), size: source.size, phase: 'hero'};
+    }
+    for (let i = 1; i < milestones.length; i++) {
+      const a = milestones[i - 1], b = milestones[i];
+      if (scroll > b.at) continue;
+      const t = smooth((scroll - a.at) / (b.at - a.at));
+      return {x: mix(a.x, b.x, t), y: mix(a.y, b.y, t),
+        size: mix(a.size, b.size, t), phase: t < .5 ? a.phase : b.phase};
+    }
+    return {...milestones.at(-1)};
+  }
+  function color(a, b, t) {
+    const channels = [16, 8, 0].map(shift => Math.round(mix((a >> shift) & 255, (b >> shift) & 255, t)));
+    return `rgb(${channels.join(',')})`;
+  }
+  function cube(ctx, x, y, size, light) {
     const s = size * .54;
-    ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha; ctx.lineWidth = .9;
-    const face = (points, color) => {
+    ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1;
+    const face = (points, dark, pale) => {
       ctx.beginPath(); points.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py));
-      ctx.closePath(); ctx.fillStyle = color; ctx.fill();
-      ctx.strokeStyle = dark ? '#004fef' : '#f2fff1'; ctx.stroke();
+      ctx.closePath(); ctx.fillStyle = color(dark, pale, light); ctx.fill();
+      ctx.strokeStyle = color(0x004fef, 0xf2fff1, light); ctx.stroke();
     };
-    face([[-s,-s*.44],[0,-s],[s,-s*.44],[0,s*.1]], dark ? '#b3caff' : '#eff9e9');
-    face([[-s,-s*.44],[0,s*.1],[0,s*1.15],[-s,s*.6]], dark ? '#75a1f1' : '#c3dcca');
-    face([[0,s*.1],[s,-s*.44],[s,s*.6],[0,s*1.15]], dark ? '#2564dc' : '#dcefd7');
+    face([[-s,-s*.44],[0,-s],[s,-s*.44],[0,s*.1]], 0xb3caff, 0xeff9e9);
+    face([[-s,-s*.44],[0,s*.1],[0,s*1.15],[-s,s*.6]], 0x75a1f1, 0xc3dcca);
+    face([[0,s*.1],[s,-s*.44],[s,s*.6],[0,s*1.15]], 0x2564dc, 0xdcefd7);
     ctx.restore();
   }
-
-  function paintRoutes() {
+  function paintRoute() {
     if (!routeInk) return;
     routeInk.clearRect(0, 0, routeWidth, routeHeight);
-    if (!enabled || innerWidth < 681 || routePoints.length < 4) return;
-    const points = routePoints;
-    const progress = state.flow * 3;
-    routeInk.strokeStyle = '#c9d3ce'; routeInk.lineWidth = 1;
-    routeInk.beginPath(); routeInk.moveTo(points[0].x, points[0].y);
-    points.slice(1).forEach(point => routeInk.lineTo(point.x, point.y)); routeInk.stroke();
-    routeInk.strokeStyle = '#004fef'; routeInk.beginPath(); routeInk.moveTo(points[0].x, points[0].y);
+    if (!enabled || width < 681 || routePoints.length !== 4) return;
+    const p = routePoints, progress = state.flow * 3;
+    routeInk.lineWidth = 1; routeInk.strokeStyle = '#c9d3ce';
+    routeInk.beginPath(); routeInk.moveTo(p[0].x, p[0].y);
+    p.slice(1).forEach(n => routeInk.lineTo(n.x, n.y)); routeInk.stroke();
+    routeInk.strokeStyle = '#004fef'; routeInk.beginPath(); routeInk.moveTo(p[0].x, p[0].y);
     for (let i = 0; i < 3; i++) {
-      const portion = clamp(progress - i);
-      if (portion <= 0) break;
-      routeInk.lineTo(mix(points[i].x, points[i + 1].x, portion), mix(points[i].y, points[i + 1].y, portion));
+      const t = smooth(progress - i);
+      if (!t) break;
+      routeInk.lineTo(mix(p[i].x, p[i + 1].x, t), mix(p[i].y, p[i + 1].y, t));
     }
     routeInk.stroke();
-    const segment = Math.min(2, Math.floor(progress)), fraction = Math.min(1, progress - segment);
-    cube(routeInk, mix(points[segment].x, points[segment + 1].x, fraction),
-      mix(points[segment].y, points[segment + 1].y, fraction), 11, 1, true);
   }
-
   function paint() {
     raf = 0;
     if (!ink || document.hidden) return;
-    ink.clearRect(0, 0, viewportWidth, viewportHeight);
-    paintRoutes();
-    if (!enabled || !sourcePoint || !publicPoint || state.hero <= .012) return;
-    const travel = smooth((state.hero - .015) / .985);
-    const rail = viewportWidth - (innerWidth < 681 ? 23 : 31);
-    const x = travel < .22 ? mix(sourcePoint.x, rail, smooth(travel / .22)) :
-      travel > .78 ? mix(rail, publicPoint.x, smooth((travel - .78) / .22)) : rail;
-    const y = mix(sourcePoint.y, publicPoint.y, travel);
-    const lower = smooth(state.shield);
-    const position = {x: mix(x, shieldPoint.x, lower), y: mix(y, shieldPoint.y, lower) - scrollY};
-    const fade = clamp(state.hero / .12) * clamp((position.y - 78) / 45) * clamp((viewportHeight + 35 - position.y) / 55);
-    if (!fade) return;
-    const size = mix(sourcePoint.size || 25, innerWidth < 681 ? 18 : 22, travel);
-    // The public trade remains visible. Only its incoming association breaks.
-    const observation = smooth((state.hero - .72) / .28) * (1 - lower);
-    ink.save(); ink.globalAlpha = fade * observation * .34; ink.strokeStyle = '#004fef'; ink.lineWidth = 1;
-    for (const [dx, dy] of [[-42,-27],[8,-43],[-42,27],[8,43]]) {
-      ink.beginPath(); ink.moveTo(position.x + dx, position.y + dy);
-      ink.lineTo(position.x + dx * .48, position.y + dy * .48); ink.stroke();
-    }
-    ink.restore();
-    cube(ink, position.x, position.y, size, fade, travel > .62);
-  }
-  function requestPaint() { if (!raf && !document.hidden) raf = requestAnimationFrame(paint); }
-
-  function updateHero() {
+    ink.clearRect(0, 0, width, height);
+    if (!enabled || !source) { lastCube = null; paintRoute(); return; }
+    const scroll = clamp(scrollY, 0, maxScroll);
+    state.hero = clamp((scroll - launch) / Math.max(1, publicAt - launch));
+    state.shield = clamp((scroll - publicAt) / Math.max(1, shieldAt - publicAt));
+    state.flow = clamp((scroll - flowStart) / (flowEnd - flowStart));
     window.shieldScene?.setProgress(state.hero);
     hero.style.setProperty('--hero-journey', state.hero);
-    exposure.style.setProperty('--public-link', clamp((state.hero - .40) / .6));
-    requestPaint();
-  }
-  function updateShield() {
+    exposure.style.setProperty('--public-link', clamp(state.hero * 1.7));
     exposure.style.setProperty('--association-break', state.shield);
-    requestPaint();
-  }
-  function updateFlow() {
-    const step = Math.min(3, Math.floor(state.flow * 4));
     board.style.setProperty('--flow-progress', state.flow);
+    const step = Math.min(3, Math.floor(state.flow * 4));
     if (step !== previousStep) {
       previousStep = step;
       document.dispatchEvent(new CustomEvent('shield-flow-step', {detail: {step, progress: state.flow}}));
     }
-    requestPaint();
+    paintRoute();
+    const point = sample(scroll), documentY = point.y + scroll;
+    const light = darkSections.reduce((tone, r) => Math.max(tone,
+      smooth((documentY - r.top) / 30) * smooth((r.bottom - documentY) / 30)), 0);
+    lastCube = {...point, visible: true, alpha: 1};
+    // No opacity ramps or per-section replacement: this actor survives every handoff.
+    cube(ink, point.x, point.y, point.size, light);
   }
-
+  function requestPaint() { if (!raf && !document.hidden) raf = requestAnimationFrame(paint); }
   function setup() {
-    context?.revert(); context = null; flowTrigger = null;
-    enabled = !preference.matches && !document.documentElement.classList.contains('motion-off') &&
-      Boolean(window.gsap && window.ScrollTrigger);
+    enabled = !preference.matches && !document.documentElement.classList.contains('motion-off') && Boolean(ink);
     document.documentElement.classList.toggle('scroll-story-enabled', enabled);
-    track.classList.remove('is-sticky');
-    const header = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header')) || 86;
-    canStick = enabled && innerWidth >= 900 && board.offsetHeight + header + 55 < innerHeight;
-    track.style.setProperty('--flow-board-height', `${board.offsetHeight}px`);
-    track.classList.toggle('is-sticky', canStick);
-    previousStep = -1;
-    window.shieldScene?.setProgress(0);
-    state.hero = state.shield = state.flow = 0;
-    hero.style.setProperty('--hero-journey', '0');
-    exposure.style.setProperty('--public-link', '1');
-    exposure.style.setProperty('--association-break', '0');
-    measure();
-    if (!enabled) { window.shieldScene?.refresh(); requestPaint(); return; }
-    gsap.registerPlugin(ScrollTrigger);
-    context = gsap.context(() => {
-      gsap.to(state, {hero: 1, ease: 'none', onUpdate: updateHero, scrollTrigger: {
-        trigger: hero, start: () => Math.max(25, $('.hero-art').getBoundingClientRect().top + scrollY - 110),
-        end: () => Math.max(200, (publicPoint?.y || exposure.offsetTop + 350) - innerHeight * .52),
-        scrub: .45, invalidateOnRefresh: true
-      }});
-      if ($('.association-row--shielded')) gsap.to(state, {shield: 1, ease: 'none', onUpdate: updateShield,
-        scrollTrigger: {trigger: '.association-row--shielded', start: 'top 73%', end: 'center 47%', scrub: .4}});
-      const timeline = gsap.to(state, {flow: 1, ease: 'none', onUpdate: updateFlow, scrollTrigger: {
-        trigger: canStick ? track : board,
-        start: canStick ? `top top+=${header + 20}` : 'top 65%',
-        end: canStick ? `bottom bottom-=${Math.max(25, innerHeight - board.offsetHeight - header - 20)}` : 'bottom 48%',
-        scrub: .35, invalidateOnRefresh: true
-      }});
-      flowTrigger = timeline.scrollTrigger;
-      if (innerWidth >= 681) gsap.fromTo('.flow-return', {opacity: .42}, {opacity: 1, scrollTrigger: {
-        trigger: track, start: 'top 35%', end: 'bottom 85%', scrub: true
-      }});
-    });
-    ScrollTrigger.refresh();
-    measure();
-    updateFlow();
+    window.shieldScene?.setTradeOverlay(enabled);
+    if (!enabled) {
+      window.shieldScene?.setProgress(0);
+      hero.style.setProperty('--hero-journey', '0');
+      exposure.style.setProperty('--public-link', '1');
+      exposure.style.setProperty('--association-break', '0');
+    }
+    measure(); previousStep = -1; requestPaint();
   }
-
+  function scheduleMeasure() { clearTimeout(resizeTimer); resizeTimer = setTimeout(setup, 100); }
   window.shieldMotion = {
     navigateToStep(step) {
-      if (!enabled || !flowTrigger) return false;
-      const target = clamp(Number(step) / 3) * .91 + .035;
-      window.scrollTo({top: mix(flowTrigger.start, flowTrigger.end, target), behavior: 'smooth'});
+      if (!enabled) return false;
+      const progress = clamp(Number(step) / 3) * .94 + .025;
+      window.scrollTo({top: mix(flowStart, flowEnd, progress), behavior: 'smooth'});
       return true;
     },
     refresh: setup,
-    getState: () => ({enabled, sticky: canStick, hero: state.hero, shield: state.shield, flow: state.flow})
+    getState: () => ({enabled, sticky: canStick, ...state, cube: lastCube, launch, maxScroll,
+      milestones: milestones.map(({at,phase}) => ({at,phase}))})
   };
   window.addEventListener('scroll', requestPaint, {passive: true});
-  window.addEventListener('resize', () => {clearTimeout(resizeTimer); resizeTimer = setTimeout(setup, 180);});
+  window.addEventListener('resize', scheduleMeasure);
   document.addEventListener('shield-motion-change', setup);
+  document.addEventListener('shield-model-ready', setup);
   preference.addEventListener('change', setup);
   document.addEventListener('visibilitychange', requestPaint);
+  document.querySelectorAll('.qa details').forEach(detail => detail.addEventListener('toggle', scheduleMeasure));
+  new ResizeObserver(() => { if ($('main').offsetHeight !== measuredHeight) scheduleMeasure(); }).observe($('main'));
   document.fonts?.ready.then(setup);
   window.addEventListener('load', setup, {once: true});
   requestAnimationFrame(setup);

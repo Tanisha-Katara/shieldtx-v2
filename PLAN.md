@@ -48,7 +48,7 @@ User direction: clear institutional writing, restrained animation and a direct c
 
 ## Review links
 
-- Private site: https://shieldtx-concept-v2.tanisha97.chatgpt.site
+- Review site: https://shieldtx-concept-v2.tanisha97.chatgpt.site
 - Fork: https://github.com/Tanisha-Katara/shieldtx-v2/tree/concept-v2
 - The first review version received automated checks and responsive source review. Browser verification is included in the revision below.
 
@@ -61,3 +61,10 @@ User direction: clear institutional writing, restrained animation and a direct c
 - Remove small explanatory footnotes and decorative captions; increase the legibility of useful trust information.
 - Restore the scroll-led trade journey from the institution into the comparison and through the four execution stages. Preserve native scrolling, manual controls and reduced motion.
 - Check the revised layouts and interactions in a local browser, then update the existing private review URL.
+
+## Continuous-cube correction
+
+- Replace the separate exposure and walkthrough cubes with a single actor and one native-scroll timeline.
+- Keep the cube visible through every section, including the terminal, questions and footer; preserve its scale and adapt its contrast to each background.
+- Check forward/reverse scrolling, mobile, deep links, resize, expanded questions and motion controls.
+- Make the site public so it opens without ChatGPT sign-in, as requested.

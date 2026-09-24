@@ -1,9 +1,9 @@
 (() => {
   'use strict';
-  const T = window.THREE, views = [];
+  const T = window.THREE, views = [], fallbackDraws = new Map();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const pointer = matchMedia('(hover: hover) and (pointer: fine)');
-  let enabled = true, frame = 0, progress = 0;
+  let enabled = true, frame = 0, progress = 0, tradeOverlay = false;
   const clamp = value => Math.max(0, Math.min(1, value));
   const motion = () => enabled && !reduced.matches && !document.documentElement.classList.contains('motion-off');
 
@@ -114,7 +114,7 @@
       path([[-3.26,4.39,2.125],[0,5.52,2.125],[3.26,4.39,2.125]],true);
       path([[0,5.52,2.125],[0,5.52,-2.125],[3.26,4.39,-2.125],[3.26,4.39,2.125]],true);
       path([[-2.91,4.51,2.14],[0,5.39,2.14],[2.91,4.51,2.14]],true);
-      if(hero){
+      if(hero && !(tradeOverlay && motion())){
         const x=.1,y=2.27,z=2.47,s=.29;
         path([[x-s,y-s,z+s],[x+s,y-s,z+s],[x+s,y+s,z+s],[x-s,y+s,z+s]],true,'#e0eedb',1);
         path([[x-s,y+s,z+s],[x+s,y+s,z+s],[x+s,y+s,z-s],[x-s,y+s,z-s]],true,'#f0f6e8',1);
@@ -122,6 +122,7 @@
       }
       ctx.globalAlpha=1;
     }
+    fallbackDraws.set(host,draw);
     new ResizeObserver(draw).observe(host);draw();
   }
 
@@ -135,7 +136,7 @@
       view.building.visible=fade>.001;
       view.group.position.y=-phase*.3;
       view.group.rotation.y=(view.entrance||0)+phase*.11;
-      view.trade.visible=phase<.12;
+      view.trade.visible=!(tradeOverlay && motion()) && phase<.12;
       view.trade.traverse(object=>{
         if(!object.material)return;
         const materials=Array.isArray(object.material)?object.material:[object.material];
@@ -216,11 +217,20 @@
     if(!motion())views.forEach(v=>{
       v.pointer.x=v.pointer.y=0;v.building.rotation.set(0,0,0);v.group.rotation.set(0,0,0);v.entrance=0;
     });
+    fallbackDraws.forEach((draw,host)=>{
+      if(host.id==='hero-model')host.style.opacity=motion()?String(1-clamp(progress/.83)):'1';
+      draw();
+    });
     requestFrame();
   }
   makeView(document.getElementById('hero-model'),true);
   makeView(document.getElementById('flow-model'),false);
   window.shieldScene={
+    setTradeOverlay(value){
+      tradeOverlay=Boolean(value);
+      views.filter(view=>view.hero).forEach(render);
+      fallbackDraws.forEach(draw=>draw());
+    },
     setProgress(value){
       progress=clamp(Number(value)||0);
       views.filter(view=>view.hero).forEach(render);
@@ -232,7 +242,12 @@
       const host=document.getElementById('hero-model');
       if(!host)return null;
       const rect=host.getBoundingClientRect();
-      if(!view)return {x:rect.left+rect.width*.47,y:rect.top+rect.height*.59,size:22};
+      if(!view){
+        const scale=Math.min(rect.width/10.4,rect.height/8.3);
+        return {x:rect.left+rect.width/2+(.1*.9-2.47*.44)*scale,
+          y:rect.top+rect.height/2+2.3*scale-(2.27*.96-.1*.14-2.47*.29)*scale,
+          size:.57*scale};
+      }
       const point=new T.Vector3(.10,2.27,2.47).project(view.camera);
       return {x:rect.left+(point.x*.5+.5)*rect.width,y:rect.top+(-point.y*.5+.5)*rect.height,
         size:Math.max(15,rect.width*.57/(view.camera.right-view.camera.left))};
