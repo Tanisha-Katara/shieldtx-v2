@@ -58,15 +58,24 @@
     return root;
   }
 
-  function trade(inkTone) {
-    const root = new T.Group(), geometry = new T.BoxGeometry(.57,.57,.57);
-    root.name = 'Trade';
-    const colors = inkTone ? [0x1260dc,0x0b3e8f,0x5c86ed,0x0b3e8f,0x004fef,0x1260dc] :
-      [0xc9e4ce,0xa8c5af,0xf0f6e8,0xb5d2bc,0xe0eedb,0xc9e4ce];
-    const cube = new T.Mesh(geometry,colors.map(color => new T.MeshBasicMaterial({color,transparent:true})));
-    cube.add(new T.LineSegments(new T.EdgesGeometry(geometry),new T.LineBasicMaterial({
-      color:inkTone?0x002e86:0xffffff,transparent:true,opacity:.82})));
-    root.add(cube); root.rotation.set(.12,-.30,.05); root.position.set(.10,2.27,2.47);
+  function shieldMark(inkTone) {
+    const root = new T.Group();
+    root.name = 'ShieldTX shield mark';
+    const surface = document.createElement('canvas');
+    surface.width = surface.height = 256;
+    const ctx = surface.getContext('2d');
+    window.shieldBrand.draw(ctx,{x:128,y:128,size:192,progress:1,light:inkTone?0:1});
+    const texture = new T.CanvasTexture(surface);
+    texture.minFilter = texture.magFilter = T.LinearFilter;
+    texture.generateMipmaps = false;
+    const mark = new T.Sprite(new T.SpriteMaterial({map:texture,transparent:true,
+      depthWrite:false,depthTest:true,toneMapped:false}));
+    // The logo occupies 75% of its texture: .76 * .75 preserves the canonical
+    // .57-unit visible height used by the travelling overlay's anchor contract.
+    mark.scale.set(.76,.76,1);
+    mark.renderOrder = 3;
+    root.add(mark);
+    root.position.set(.10,2.27,2.47);
     return root;
   }
 
@@ -115,10 +124,9 @@
       path([[0,5.52,2.125],[0,5.52,-2.125],[3.26,4.39,-2.125],[3.26,4.39,2.125]],true);
       path([[-2.91,4.51,2.14],[0,5.39,2.14],[2.91,4.51,2.14]],true);
       if(hero && !(tradeOverlay && motion())){
-        const x=.1,y=2.27,z=2.47,s=.29;
-        path([[x-s,y-s,z+s],[x+s,y-s,z+s],[x+s,y+s,z+s],[x-s,y+s,z+s]],true,'#e0eedb',1);
-        path([[x-s,y+s,z+s],[x+s,y+s,z+s],[x+s,y+s,z-s],[x-s,y+s,z-s]],true,'#f0f6e8',1);
-        path([[x+s,y-s,z+s],[x+s,y-s,z-s],[x+s,y+s,z-s],[x+s,y+s,z+s]],true,'#b5d2bc',1);
+        const [x,y]=project([.10,2.27,2.47]);
+        ctx.globalAlpha=1;
+        window.shieldBrand.draw(ctx,{x,y,size:.57*scale,progress:1,light:host.dataset.tone==='ink'?0:1});
       }
       ctx.globalAlpha=1;
     }
@@ -179,7 +187,7 @@
     camera.position.set(10,8.6,20);camera.lookAt(0,2.55,0);
     const ink=host.dataset.tone==='ink',building=institution(ink?0x064295:0xf4f5e9);
     const group=new T.Group();group.add(building);
-    const tradeObject=hero?trade(ink):null;
+    const tradeObject=hero?shieldMark(ink):null;
     if(tradeObject)group.add(tradeObject);
     scene.add(group);
     const view={host,renderer,scene,camera,building,group,hero,trade:tradeObject,visible:true,

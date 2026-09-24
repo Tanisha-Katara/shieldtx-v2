@@ -68,3 +68,9 @@ User direction: clear institutional writing, restrained animation and a direct c
 - Keep the cube visible through every section, including the terminal, questions and footer; preserve its scale and adapt its contrast to each background.
 - Check forward/reverse scrolling, mobile, deep links, resize, expanded questions and motion controls.
 - Make the site public so it opens without ChatGPT sign-in, as requested.
+
+## Brand assembly
+
+- Replace the travelling cube with the approved logo motion study: three official bars, tapered base, full ShieldTX wordmark, then a shield framing the original mark.
+- Complete the transformation during the execution walkthrough and carry the finished shield through the remaining page.
+- Reuse the continuous path and native scrolling; keep the assembled shield visible when motion is off.

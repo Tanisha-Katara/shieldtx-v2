@@ -24,7 +24,7 @@ The dependency-free build validates local assets and produces `dist/client/` plu
 - **Terminal and API:** separate routes to the official beta terminal and API access page, plus a beta application link.
 - **Wallet association:** two visible comparison rows show what stays public and which association is shielded. No tab switching, invented exposure scores or wallet processing.
 - **Walkthrough:** native scrolling advances four selectable stages. A short sticky sequence is used only when the board fits the viewport. Step selection and Replay navigate to the matching stage; reduced motion keeps manual selection available. Wheel and touch scrolling are never captured.
-- **Continuous trade:** one geometric cube travels from the institution through the wallet comparison, execution stages, terminal/API, questions and footer. A single native-scroll timeline controls its position, size and contrast. The cube remains within the viewport between sections, including on mobile. A canvas fallback works without WebGL.
+- **Continuous brand story:** the official ShieldTX bars assemble in sequence, reveal the complete wordmark, and become a framed shield with the bars retained inside. One native-scroll timeline carries the mark from the institution through the comparison, execution stages, terminal/API, questions and footer. Reduced motion shows the complete shield; a canvas fallback works without WebGL.
 - **Credibility:** official Avail branding and a linked “Built by Avail” credit appear above the hero headline and beside product access.
 - **Scanner:** validates a public EVM address locally, then opens the official scanner in a new tab. No wallet connection, signature, or transaction occurs here.
 - **Product:** a clean frame from the existing official demo, with provenance and product boundaries in [product sources](docs/product-sources.md). It is not presented as a live screenshot.
@@ -35,7 +35,7 @@ The dependency-free build validates local assets and produces `dist/client/` plu
 - Build verifies local asset/import references.
 - HTML checks cover duplicate IDs, anchor/ARIA targets, image labels, and external-link attributes.
 - JavaScript syntax checks pass. The architecture model's projection bounds were checked at desktop, mobile, and small diagram sizes.
-- Local browser checks cover desktop and mobile layouts, full-page cube continuity in both directions, step selection, Replay, motion controls, reduced motion, mobile navigation and scanner validation. Browser screenshots are reviewed for layout and legibility.
+- Local browser checks cover desktop and mobile layouts, full-page mark continuity and assembly in both directions, step selection, Replay, motion controls, reduced motion, mobile navigation and scanner validation. Browser screenshots are reviewed for layout and legibility.
 
 ## Assets and scope
 

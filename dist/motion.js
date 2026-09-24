@@ -27,7 +27,7 @@
   let width = 0, height = 0, header = 0, maxScroll = 0, launch = 0;
   let flowStart = 0, flowEnd = 1, publicAt = 1, shieldAt = 2;
   let source, milestones = [], routePoints = [], darkSections = [];
-  let routeWidth = 0, routeHeight = 0, lastCube = null, measuredHeight = 0;
+  let routeWidth = 0, routeHeight = 0, lastMark = null, measuredHeight = 0;
 
   function rect(element) {
     const r = element.getBoundingClientRect();
@@ -49,7 +49,7 @@
   function measure() {
     width = innerWidth; height = innerHeight;
     header = $('.site-header').offsetHeight;
-    const mobile = width < 681, size = mobile ? 27 : 32;
+    const mobile = width < 681, size = mobile ? 32 : 38;
     const rail = width - (mobile ? 26 : 36), restingY = height * .53;
     track.classList.remove('is-sticky');
     canStick = enabled && width >= 900 && board.offsetHeight + header + 55 < height;
@@ -143,23 +143,6 @@
     }
     return {...milestones.at(-1)};
   }
-  function color(a, b, t) {
-    const channels = [16, 8, 0].map(shift => Math.round(mix((a >> shift) & 255, (b >> shift) & 255, t)));
-    return `rgb(${channels.join(',')})`;
-  }
-  function cube(ctx, x, y, size, light) {
-    const s = size * .54;
-    ctx.save(); ctx.translate(x, y); ctx.lineWidth = 1;
-    const face = (points, dark, pale) => {
-      ctx.beginPath(); points.forEach(([px, py], i) => i ? ctx.lineTo(px, py) : ctx.moveTo(px, py));
-      ctx.closePath(); ctx.fillStyle = color(dark, pale, light); ctx.fill();
-      ctx.strokeStyle = color(0x004fef, 0xf2fff1, light); ctx.stroke();
-    };
-    face([[-s,-s*.44],[0,-s],[s,-s*.44],[0,s*.1]], 0xb3caff, 0xeff9e9);
-    face([[-s,-s*.44],[0,s*.1],[0,s*1.15],[-s,s*.6]], 0x75a1f1, 0xc3dcca);
-    face([[0,s*.1],[s,-s*.44],[s,s*.6],[0,s*1.15]], 0x2564dc, 0xdcefd7);
-    ctx.restore();
-  }
   function paintRoute() {
     if (!routeInk) return;
     routeInk.clearRect(0, 0, routeWidth, routeHeight);
@@ -180,7 +163,7 @@
     raf = 0;
     if (!ink || document.hidden) return;
     ink.clearRect(0, 0, width, height);
-    if (!enabled || !source) { lastCube = null; paintRoute(); return; }
+    if (!enabled || !source) { lastMark = null; paintRoute(); return; }
     const scroll = clamp(scrollY, 0, maxScroll);
     state.hero = clamp((scroll - launch) / Math.max(1, publicAt - launch));
     state.shield = clamp((scroll - publicAt) / Math.max(1, shieldAt - publicAt));
@@ -199,13 +182,14 @@
     const point = sample(scroll), documentY = point.y + scroll;
     const light = darkSections.reduce((tone, r) => Math.max(tone,
       smooth((documentY - r.top) / 30) * smooth((r.bottom - documentY) / 30)), 0);
-    lastCube = {...point, visible: true, alpha: 1};
-    // No opacity ramps or per-section replacement: this actor survives every handoff.
-    cube(ink, point.x, point.y, point.size, light);
+    const progress = clamp((scroll - launch) / Math.max(1, flowEnd - launch));
+    const brand = window.shieldBrand.draw(ink, {x:point.x,y:point.y,size:point.size,progress,light,
+      viewport:{width,height,top:header+12}});
+    lastMark = {...point, ...brand, visible:true, alpha:1};
   }
   function requestPaint() { if (!raf && !document.hidden) raf = requestAnimationFrame(paint); }
   function setup() {
-    enabled = !preference.matches && !document.documentElement.classList.contains('motion-off') && Boolean(ink);
+    enabled = !preference.matches && !document.documentElement.classList.contains('motion-off') && Boolean(ink && window.shieldBrand);
     document.documentElement.classList.toggle('scroll-story-enabled', enabled);
     window.shieldScene?.setTradeOverlay(enabled);
     if (!enabled) {
@@ -225,7 +209,7 @@
       return true;
     },
     refresh: setup,
-    getState: () => ({enabled, sticky: canStick, ...state, cube: lastCube, launch, maxScroll,
+    getState: () => ({enabled, sticky: canStick, ...state, mark: lastMark, launch, maxScroll,
       milestones: milestones.map(({at,phase}) => ({at,phase}))})
   };
   window.addEventListener('scroll', requestPaint, {passive: true});
